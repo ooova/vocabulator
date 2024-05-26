@@ -1,3 +1,6 @@
 [submodule "raylib-cpp"]
 	path = raylib-cpp
 	url = git@github.com:RobLoach/raylib-cpp.git
+[submodule "spdlog"]
+	path = spdlog
+	url = https://github.com/gabime/spdlog.git
