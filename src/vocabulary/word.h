@@ -1,28 +1,44 @@
 #ifndef VOCABULARY_WORD_H
 #define VOCABULARY_WORD_H
 
-#include <map>
+#include <cstdint>
 #include <string>
 #include <string_view>
-#include <utility>
-#include <vector>
+
+#include "vocabulary/translation.h"
 
 namespace vocabulary {
 
-using Translation =
-    std::pair<std::vector<std::string> /*foreign*/, std::vector<std::string> /*examples*/
-              >;
-
-using Word = std::pair<std::string, Translation>;
-
-class Vocabulary {
+class Word {
 public:
-    Vocabulary();
+    static char const kDefaultItemsDelimiter{';'};
+    static char const kDefaultFieldsDelimiter{'|'};
+    /**
+     * @throw std::invalid_argument
+     */
+    static Word parse(std::string_view str, char item_delim = kDefaultItemsDelimiter,
+                      char field_delim = kDefaultFieldsDelimiter);
 
-    void addWord(std::string_view const word, Translation&& translation);
+    /**
+     * @throw std::invalid_argument if word is empty string
+     */
+    Word(std::string_view word, Translation&& translation);
+    std::string word() const;
+    void addTranslation(Translation&& translation);
+    Translation const& translation() const;
+    std::string toString() const;
+    uint8_t retentionPercentage() const;
+    std::vector<uint8_t> toBin() const;
+    void setDelimiters(char item_delim, char field_delim);
 
 private:
-    std::map<std::string /*native*/, Translation> vocabulary_{};
+    int impressions_number_{};
+    int know_number_{};
+    std::string word_;
+    Translation translation_;
+
+    inline static char item_delimiter_{kDefaultItemsDelimiter};
+    inline static char field_delimiter_{kDefaultFieldsDelimiter};
 };
 
 }  // namespace vocabulary

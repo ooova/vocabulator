@@ -39,7 +39,7 @@ public:
 
         for (auto const lang : langs) {
             alphabet += alphabets_.at(lang);
-            spdlog::info("from {}: {}", __FUNCTION__, alphabets_.at(lang));
+            spdlog::trace("{}: {}", __FUNCTION__, alphabets_.at(lang));
         }
 
         return alphabet;

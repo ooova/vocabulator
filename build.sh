@@ -13,8 +13,12 @@ if [[ ! -e ${font_path}/Ubuntu-R.ttf ]]; then
 fi
 
 g++ src/main.cc \
+    src/tools/string_utils.cc \
     src/ui/main-window.cc \
     src/ui/widgets/card.cc \
+    src/vocabulary/vocabulary.cc \
+    src/vocabulary/word.cc \
+    src/vocabulary/translation.cc \
     -o ./build/main \
     -std=c++20 \
     -Wextra \
@@ -24,7 +28,15 @@ g++ src/main.cc \
     -I./raylib-cpp/include \
     -I./spdlog/include \
     -I/usr/local/include \
-    -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 \
+    -lraylib \
+    -lGL \
+    -lm \
+    -lpthread \
+    -ldl \
+    -lrt \
+    -lX11 \
+    -lfmt \
+
 
 # -Wshadow
 

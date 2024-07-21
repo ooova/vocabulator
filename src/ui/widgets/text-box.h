@@ -23,7 +23,7 @@ public:
         , textColor_{textColor}
         , backgroundColor_{backgroundColor}
     {
-        initText();
+        clear();
     }
 
     TextBox& operator<<(std::string_view text) {
@@ -41,6 +41,10 @@ public:
             text_.back().first.SetText(text_.back().first.GetText() + std::string{ch});
         }
         return *this;
+    }
+
+    void clear() {
+        initText();
     }
 
     void setText(std::string_view const& text) {

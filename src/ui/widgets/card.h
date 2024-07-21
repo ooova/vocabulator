@@ -2,7 +2,7 @@
 #define UI_WIDGETS_CARD_H
 
 #include "ui/widgets/text-box.h"
-#include "vocabulary/word.h"
+#include "vocabulary/vocabulary.h"
 
 #include "raylib-cpp.hpp"
 
@@ -13,6 +13,7 @@ public:
     Card(RVector2 position, RVector2 size, vocabulary::Word const& word, RFont&& font = {});
 
     void draw();
+    void setWord(vocabulary::Word const& word);
 private:
     TextBox text_box_;
 };

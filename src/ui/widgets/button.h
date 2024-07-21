@@ -2,6 +2,7 @@
 #define UI_WIDGETS_BUTTON_H
 
 #include <chrono>
+#include <functional>
 #include <string_view>
 #include <thread>
 
@@ -14,7 +15,8 @@ namespace ui::widgets {
 
 class Button : public RRectangle {
 public:
-    using ClickCallback = void (*)(void);
+    // using ClickCallback = void (*)(void);
+    using ClickCallback = std::function<void(void)>;
 
     Button(RVector2 position, RVector2 size, std::string_view const text,
            ClickCallback clickCallback, RFont&& font = {}, RColor color = RColor::Gray())
