@@ -23,6 +23,11 @@ public:
      * @throw std::invalid_argument if word is empty string
      */
     Word(std::string_view word, Translation&& translation);
+    Word(Word&& other) = default;
+    Word& operator=(Word&& other) = default;
+    Word(Word const& other) = delete;
+    Word& operator=(Word const& other) = delete;
+
     std::string word() const;
     void addTranslation(Translation&& translation);
     Translation const& translation() const;

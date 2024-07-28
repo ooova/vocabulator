@@ -77,10 +77,6 @@ TEST(TranslationTest, translationWithSeveralVariantsAndExamples)
     auto const kExamplesString{kExample1 + kIDelim + kExample2 + kIDelim + kExample3};
     auto const kExpectedFullString{kVariantsString + kFDelim + kExamplesString};
 
-    std::cout << "kVariantsString = " << kVariantsString << std::endl;
-    std::cout << "kExamplesString = " << kExamplesString << std::endl;
-    std::cout << "kExpectedFullString = " << kExpectedFullString << std::endl;
-
     auto obj{Translation{kVariants, kExamples}};
 
     EXPECT_EQ(obj.variants(), kVariants);
@@ -100,10 +96,6 @@ TEST(TranslationTest, translationWithSeveralVariantsAndExamplesAndCustomDelimite
                                kCustomItemDelimiter + kExample3};
     auto const kExpectedFullString{kVariantsString + kCustomFieldDelimiter +
                                    kExamplesString};
-
-    std::cout << "kVariantsString = " << kVariantsString << std::endl;
-    std::cout << "kExamplesString = " << kExamplesString << std::endl;
-    std::cout << "kExpectedFullString = " << kExpectedFullString << std::endl;
 
     auto obj{
         Translation{kVariants, kExamples, kCustomItemDelimiter, kCustomFieldDelimiter}};
@@ -150,8 +142,6 @@ TEST(TranslationTest, translationParsingWithCustomDelimiters)
         Translation::parse(kVariantsString, kCustomItemDelimiter, kCustomFieldDelimiter)};
     EXPECT_EQ(obj.variants(), kVariants);
     EXPECT_TRUE(obj.examples().empty());
-
-    std::cout << std::endl;
 
     obj = Translation::parse(kExpectedFullString, kCustomItemDelimiter,
                              kCustomFieldDelimiter);

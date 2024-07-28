@@ -1,5 +1,6 @@
 #include "vocabulary/translation.h"
 
+#include <algorithm>
 #include <numeric>  // std::accumulate
 
 #include "common/exceptions/parsing_error.h"
@@ -19,32 +20,14 @@ std::string serializeVector(std::vector<std::string> const& values, char delimit
         [delimiter](auto const& a, auto const& b) { return a + delimiter + b; });
 }
 
-std::vector<std::string> parseItems(std::string_view str, char const delimiter)
+void removeEmptyStrings(std::vector<std::string>& strs)
 {
-    auto result{std::vector<std::string>{}};
-
-    const auto throw_if_empty = [](auto const& str) {
-        if (str.empty()) {
-            auto const message{"item field is empty"};
-            spdlog::critical(message);
-            throw ParsingError(message);
-        }
-    };
-
-    while (str.size()) {
-        tools::removePrefixSpacesAndTabs(str);
-        auto itemEndIndex{str.find(delimiter)};
-        auto str_to_save = str.substr(0, itemEndIndex);
-        tools::removeSuffixSpacesAndTabs(str_to_save);
-        throw_if_empty(str_to_save);
-        result.emplace_back(str_to_save);
-        if (itemEndIndex == std::string::npos) {
-            break;
-        }
-        str.remove_prefix(itemEndIndex + 1);
-    }
-
-    return result;
+    strs.erase(std::remove_if(strs.begin(), strs.end(),
+                              [](std::string& s) {
+                                  tools::string_utils::trim(s);
+                                  return s.empty();
+                              }),
+               strs.end());
 }
 
 }  // namespace
@@ -57,47 +40,35 @@ Translation Translation::parse(std::string_view str, char const item_delim,
     spdlog::trace("{}(): string to be parsed: \"{}\" string size = {}", __FUNCTION__, str,
                   str.size());
 
-    std::vector<std::string> variants{};
-    std::vector<std::string> examples{};
+    auto s{std::string{str}};
 
-    tools::removePrefixSpacesAndTabs(str);
-    tools::removePrefix(str, field_delim);
-    tools::removePrefixSpacesAndTabs(str);
+    tools::string_utils::trim(s);
+    tools::string_utils::removePrefix(s, field_delim);
+    tools::string_utils::removeSuffix(s, field_delim);
 
-    tools::removeSuffixSpacesAndTabs(str);
-    tools::removeSuffix(str, field_delim);
-    tools::removeSuffixSpacesAndTabs(str);
-
-    if (str.empty()) {
-        auto const message{"parsing error: input string is empty"};
+    std::vector<std::string> parts = tools::string_utils::split(s, field_delim);
+    removeEmptyStrings(parts);
+    if (parts.empty()) {
+        auto const message{"parsing error: string doesn't contain anything useful"};
         spdlog::critical(message);
         throw ParsingError(message);
     }
 
-    auto fieldEndIndex{str.find(field_delim)};
-
-    variants = parseItems(str.substr(0, fieldEndIndex), item_delim);
+    std::vector<std::string> variants =
+        tools::string_utils::split(parts.at(0), item_delim);
+    removeEmptyStrings(variants);
 
     if (variants.empty()) {
-        auto const message{"parsing error: \"variants\" of the translation is empty"};
+        auto const message{"parsing error: \"variants\" of the translation are empty"};
         spdlog::critical(message);
         throw ParsingError(message);
     }
 
-    if (fieldEndIndex != std::string::npos) {
-        str.remove_prefix(fieldEndIndex + 1);
-        examples = parseItems(str, item_delim);
+    std::vector<std::string> examples{};
+    if (1 < parts.size()) {
+        examples = tools::string_utils::split(parts.at(1), item_delim);
+        removeEmptyStrings(examples);
     }
-
-    auto msg{std::string{"parsed translation:"}};
-    for (auto const& v : variants) {
-        msg += ' ' + v;
-    }
-    msg += " |";
-    for (auto const& e : examples) {
-        msg += ' ' + e;
-    }
-    spdlog::trace("{}(): {}", __FUNCTION__, msg);
 
     return {variants, examples, item_delim, field_delim};
 }

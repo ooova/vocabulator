@@ -10,16 +10,15 @@ namespace vocabulary {
 
 Word Word::parse(std::string_view str, char item_delim, char field_delim)
 {
-    tools::removePrefixSpacesAndTabs(str);
-    tools::removePrefix(str, field_delim);
-    tools::removePrefixSpacesAndTabs(str);
+    auto string{std::string{str}};
 
-    const auto end{str.find(field_delim)};
-    const auto word{str.substr(0, end)};
+    tools::string_utils::removePrefixSpacesAndTabs(string);
+    tools::string_utils::removePrefix(string, field_delim);
 
-    tools::removeSuffixSpacesAndTabs(str);
-    tools::removeSuffix(str, field_delim);
-    tools::removeSuffixSpacesAndTabs(str);
+    const auto end{string.find(field_delim)};
+    auto word{string.substr(0, end)};
+
+    tools::string_utils::trim(word);
 
     if (word.find(item_delim) != std::string::npos) {
         throw ParsingError{"\'word\' can contain only one variant"};
@@ -29,8 +28,8 @@ Word Word::parse(std::string_view str, char item_delim, char field_delim)
         throw ParsingError{"word can not be empty string"};
     }
 
-    str.remove_prefix(end == std::string::npos ? str.size() : end);
-    return {word, Translation::parse(str, item_delim, field_delim)};
+    string.erase(0, (end == std::string::npos ? string.size() : end));
+    return {word, Translation::parse(string, item_delim, field_delim)};
 }
 
 Word::Word(std::string_view word, Translation&& translation)

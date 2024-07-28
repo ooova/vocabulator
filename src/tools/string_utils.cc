@@ -1,33 +1,60 @@
 #include "string_utils.h"
 
-namespace tools {
+#include <sstream>
 
-void removePrefix(std::string_view& s, char ch)
+namespace tools::string_utils {
+
+void removePrefix(std::string& str, char ch)
 {
-    while (!s.empty() && (s.front() == ch)) {
-        s.remove_prefix(1);
+    if (const auto index = str.find_first_not_of(ch); index != std::string::npos) {
+        str.erase(0, index);
     }
 }
 
-void removeSuffix(std::string_view& s, char ch)
+void removeSuffix(std::string& str, char ch)
 {
-    while (!s.empty() && (s.back() == ch)) {
-        s.remove_suffix(1);
+    if (const auto index = str.find_last_not_of(ch); index != std::string::npos) {
+        str.erase(index + 1);
     }
 }
 
-void removePrefixSpacesAndTabs(std::string_view& s)
+void removePrefixSpacesAndTabs(std::string& str)
 {
-    while (!s.empty() && ((s.front() == ' ') || (s.front() == '\t'))) {
-        s.remove_prefix(1);
+    auto count{0};
+    while ((count != str.size()) && ((str.at(count) == ' ') || (str.at(count) == '\t'))) {
+        ++count;
+    }
+    str.erase(0, count);
+}
+
+void removeSuffixSpacesAndTabs(std::string& str)
+{
+    auto index{str.size()};
+    while ((0 < index) && ((str.at(index - 1) == ' ') || (str.at(index - 1) == '\t'))) {
+        --index;
+    }
+    if (index < str.size()) {
+        str.erase(index);
     }
 }
 
-void removeSuffixSpacesAndTabs(std::string_view& s)
+void trim(std::string& str)
 {
-    while (!s.empty() && ((s.back() == ' ') || (s.back() == '\t'))) {
-        s.remove_suffix(1);
+    removePrefixSpacesAndTabs(str);
+    removeSuffixSpacesAndTabs(str);
+};
+
+std::vector<std::string> split(std::string_view str, char delimiter)
+{
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(std::string{str});
+    while (std::getline(tokenStream, token, delimiter)) {
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
     }
+    return tokens;
 }
 
-}  // namespace tools
+}  // namespace tools::string_utils
