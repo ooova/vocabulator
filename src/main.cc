@@ -1,3 +1,4 @@
+#include "common/exceptions/parsing_error.h"
 #include "spdlog/spdlog.h"
 #include "ui/main-window.h"
 #include "ui/widgets/button.h"
@@ -6,6 +7,8 @@
 
 // #include <cmath> // NOLINT
 #include <string_view>
+
+constexpr const auto kDefaultVocabularyPath{std::string_view{"assets/vocabulary.md"}};
 
 std::vector<
     std::map<std::string /*native*/, std::pair<std::vector<std::string> /*foreign*/,
@@ -17,10 +20,11 @@ using namespace std::literals;
 
 int main(void)
 {
-    spdlog::set_level(spdlog::level::level_enum::trace);
+    spdlog::set_level(spdlog::level::level_enum::info);
 
     try {
-        auto vocabulary{std::make_shared<vocabulary::Vocabulary>()};
+        auto vocabulary{std::make_shared<vocabulary::Vocabulary>(kDefaultVocabularyPath)};
+
         auto window = ui::MainWindow(vocabulary);  // initWindow();
 
         // window.textBox().setText("uno due tre"sv);
@@ -59,6 +63,10 @@ int main(void)
         }
     } catch (raylib::RaylibException const& ex) {
         spdlog::error("Can not initialize window: {}", ex.what());
+    } catch (ParsingError const& ex) {
+        spdlog::error("Parsing error: {}", ex.what());
+    } catch (std::exception const& ex) {
+        spdlog::error("Exception: {}", ex.what());
     }
 
     return 0;

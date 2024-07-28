@@ -1,6 +1,6 @@
 enable_testing()
 
-# =========================================================
+# translation-test ============================================================
 
 add_executable(
   translation-test
@@ -21,7 +21,7 @@ target_include_directories(
   ${CMAKE_SOURCE_DIR}/../spdlog/include
 )
 
-# =========================================================
+# word-test ===================================================================
 
 add_executable(
   word-test
@@ -39,6 +39,30 @@ target_link_libraries(
 
 target_include_directories(
   word-test PRIVATE
+  ${CMAKE_SOURCE_DIR}/../src
+  ${CMAKE_SOURCE_DIR}/../spdlog/include
+)
+
+# vocabulary-test =============================================================
+
+add_executable(
+  vocabulary-test
+  vocabulary-test.cc
+  ${CMAKE_SOURCE_DIR}/../src/vocabulary/vocabulary.cc
+
+  ${CMAKE_SOURCE_DIR}/../src/tools/string_utils.cc
+  ${CMAKE_SOURCE_DIR}/../src/vocabulary/translation.cc
+  ${CMAKE_SOURCE_DIR}/../src/vocabulary/word.cc
+)
+
+target_link_libraries(
+  vocabulary-test
+  GTest::gtest_main
+  fmt
+)
+
+target_include_directories(
+  vocabulary-test PRIVATE
   ${CMAKE_SOURCE_DIR}/../src
   ${CMAKE_SOURCE_DIR}/../spdlog/include
 )

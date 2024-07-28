@@ -16,6 +16,19 @@ class Vocabulary;
 
 namespace ui {
 
+constexpr int kBackgroundColor{0x181818};
+
+constexpr int kScreenWidth{800};
+constexpr int kScreenHeight{450};
+constexpr int kScreenMargin{10};
+
+constexpr int kButtonWidth{100};
+constexpr int kButtonHeighth{30};
+
+constexpr int kElementMargin{5};
+
+constexpr int kCardHeight{200};
+
 class MainWindow : public RWindow {
 public:
     MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary);
@@ -23,9 +36,16 @@ public:
     void draw();
 
 private:
+    // const RVector2 kAddNewWordBoxPosition{
+    //     kScreenMargin, kScreenMargin + kElementMargin + kButtonHeighth + kElementMargin
+    //     +
+    //                        kCardHeight + kElementMargin};
+    // const RVector2 kAddNewWordBoxSize{kScreenWidth + 2 * kScreenMargin, kCardHeight};
+
     const std::string font_file_path_{"./assets/fonts/Ubuntu-R.ttf"};
-    std::array<locale::Language, 4> char_set_{
-        locale::Language::kRU, locale::Language::kEN, locale::Language::kMathSymbols, locale::Language::kSpecSymbols};
+    std::array<tools::Language, 4> char_set_{
+        tools::Language::kRU, tools::Language::kEN, tools::Language::kMathSymbols,
+        tools::Language::kSpecSymbols};
 
     std::weak_ptr<vocabulary::Vocabulary> vocabulary_;
 
@@ -35,8 +55,6 @@ private:
     widgets::Button button_save_vocabulary_;
     widgets::Button button_vocabulary_add_word_;
     widgets::Card card_;
-
-    RFont createFont();
 };
 
 }  // namespace ui

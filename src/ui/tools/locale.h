@@ -7,7 +7,7 @@
 #include <string>
 #include <map>
 
-namespace ui::locale {
+namespace ui::tools {
 
 enum class Language {
     kNumbers,
@@ -65,6 +65,6 @@ private:
     };
 };
 
-} // namespace ui::locale
+} // namespace ui::tools
 
 #endif // UI_TOOLS_LOCALE_H

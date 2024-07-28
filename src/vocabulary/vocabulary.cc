@@ -10,178 +10,128 @@
 
 #include "spdlog/spdlog.h"
 
-namespace {
-
-void removePrefixSpaces(std::string_view& s)
-{
-    while (!s.empty() && (s.at(0) == ' ' || s.at(0) == '\t')) {
-        s.remove_prefix(1);
-    }
-}
-
-}  // namespace
-
 namespace vocabulary {
 
-// std::string serialize(std::vector<std::string> const& values, char const delimiter)
-// {
-//     if (values.empty()) {
-//         return {};
-//     }
-//     return std::accumulate(
-//         std::next(values.begin()), values.end(), values.front(),
-//         [delimiter](auto const& a, auto const& b) { return a + delimiter + b; });
-// }
-
-std::vector<std::string> deserialize(std::string_view str, char const delimiter)
+Vocabulary::Vocabulary(std::filesystem::path const& import_from, char item_delim,
+                       char field_delim)
 {
-    auto result{std::vector<std::string>{}};
+    importFromFile(import_from, item_delim, field_delim);
+}
 
-    if (str.empty()) {
-        return result;
+Translation const& Vocabulary::translate(std::string_view const word)
+{
+    return findWord(word).translation();
+}
+
+// void setStrategy(std::weak_ptr<LearningStrategies::Strategy> strategy);
+
+Vocabulary::Statistic Vocabulary::getStatistic() const
+{
+    auto result{Statistic{.words_count = words_.size()}};
+
+    for (auto const& w : words_) {
+        if (w.retentionPercentage() > kRetentionPercentageForKnownWord) {
+            ++result.known_words_count;
+        } else if (w.retentionPercentage() == 0) {
+            ++result.new_words_count;
+        } else {
+            ++result.in_progress_words_count;
+        }
     }
-
-    auto end{str.find(delimiter)};
-    do {
-        result.emplace_back(str.substr(0, end));
-        str = str.substr(end);
-        // begin = end;
-        end = str.find(delimiter);
-    } while (!str.empty());  // begin != std::string::npos);
-
     return result;
 }
 
-// Word deserialize(std::string_view str)
-// {
-//     spdlog::trace("{}(): str: {}", __FUNCTION__, str);
-//     auto result{Word{}};
-
-//     auto const removeDelimiterAndSpaces = [](auto& s) {
-//         if (!s.empty() && (s.at(0) == kColumnDelimiter)) {
-//             s.remove_prefix(1);
-//         } else {
-//             throw std::logic_error("wrong input string format");
-//         }
-//         removePrefixSpaces(s);
-//     };
-
-//     auto const findDelimiter = [](auto const str, auto const delimiter) {
-//         // auto result{str.find(' ')};
-//         // if (result == std::string::npos) {
-//         //     result = str.find(kColumnDelimiter);
-//         // }
-//         // return result;
-//         return str.find(delimiter);
-//     };
-
-//     removePrefixSpaces(str);
-
-//     if (str.empty() || str.at(0) != kColumnDelimiter) {
-//         throw std::logic_error("wrong input string format or the string is empty");
-//     }
-
-//     removeDelimiterAndSpaces(str);
-
-//     auto wordEnd{findDelimiter(str, kColumnDelimiter)};
-//     auto word{str.substr(0, wordEnd)};
-//     if (wordEnd == std::string::npos) {
-//         throw std::logic_error(
-//             (std::string{
-//                  "wrong input string format. Entry contains only \'word\' field: \'"} +
-//              std::string{word} + "\'")
-//                 .c_str());
-//     }
-//     spdlog::trace("{}: word found: {}", __PRETTY_FUNCTION__, word);
-//     str = str.substr(wordEnd);
-
-//     removeDelimiterAndSpaces(str);
-//     auto translationEnd{findDelimiter(str, kColumnDelimiter)};
-//     auto translation{str.substr(0, translationEnd)};
-//     // if (translationEnd == std::string::npos) {
-//     //     throw std::logic_error((std::string{"wrong input string format. Entry contains
-//     //     only \'word\' field: \'"} + std::string{word} + "\'").c_str());
-//     // }
-//     spdlog::trace("{}: translation found: {}", __PRETTY_FUNCTION__, translation);
-
-//     // result[]
-//     // auto end{str.find(kItemsDelimiter)};
-
-//     // do {
-//     //     result.emplace_back(value.substr(0, end));
-//     //     str = str.substr(end);
-//     //     // begin = end;
-//     //     end = str.find(kItemsDelimiter);
-//     // } while (!str.empty());// begin != std::string::npos);
-
-//     result.first = std::string{word};
-//     result.second = {std::vector{std::string{translation}}, {}};
-
-//     return result;
-// }
-
 void Vocabulary::addWord(std::string_view const word, Translation&& translation)
 {
-    spdlog::trace("{}(): word: {}, translation: {} | {}", __PRETTY_FUNCTION__, word,
-                  serialize(translation.first, kItemsDelimiter),
-                  serialize(translation.second, kItemsDelimiter));
-    vocabulary_[std::string{word}] = translation;
+    addWord({word, std::move(translation)});
 }
 
-Translation Vocabulary::translate(std::string_view const word) const
+void Vocabulary::addWord(Word&& word)
 {
-    if (vocabulary_.contains(std::string{word})) {
-        return vocabulary_.at(std::string{word});
-    }
-    return {};
+    spdlog::trace("{}(): new word: {}", __FUNCTION__, word.toString());
+    words_.push_back(std::move(word));
 }
 
-Word Vocabulary::getWord() const {
-    if (vocabulary_.empty()) {
-        spdlog::trace("{}: vocabulary is empty", __PRETTY_FUNCTION__);
-        return {};
+void Vocabulary::importFromFile(std::filesystem::path const& path, char item_delim,
+                                char field_delim)
+{
+    std::ifstream inputFile(path /* , std::ios::app */);
+    if (!inputFile) {
+        auto const msg{
+            fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path.string())};
+        // spdlog::error(msg);
+        throw VocabularyError(msg);
     }
-    const auto word = vocabulary_.begin()->first;
-    spdlog::trace("{}: word: {}", __PRETTY_FUNCTION__, word);
-    return {word, vocabulary_.at(word)};
+
+    try {
+        for (std::array<char, 1024> a{'\0'}; inputFile.getline(&a[0], a.size());) {
+            words_.push_back(
+                Word::parse(/* std::string_view( */ a.data(), item_delim, field_delim));
+        }
+    } catch (std::exception const& e) {
+        spdlog::error("{}", e.what());
+        throw;
+    }
+
+    spdlog::info("vocabulary \'{}\' successfully imported. Words count: {}",
+                 path.string(), words_.size());
 }
 
-void Vocabulary::save(std::filesystem::path const path)
+void Vocabulary::exportToFile(std::filesystem::path const& path)
 {
     std::ofstream outputFile(path /* , std::ios::app */);
     try {
-        for (auto const& [word, translation] : vocabulary_) {
-            // auto translation{std::string{}};
-            auto const entry{fmt::format("|{}|{}|{}|\n", word,
-                                         serialize(translation.first, kItemsDelimiter),
-                                         serialize(translation.second, kItemsDelimiter))};
-            outputFile << entry;
+        for (auto const& word : words_) {
+            outputFile << word.toString() << '\n';
         }
-        // std::vector<unsigned char> buf;
-        // write some data into buf
-        // outputFile.write(&buf[0], buf.size());  // write binary to the output stream
     } catch (std::exception const& e) {
         spdlog::error("{}", e.what());
     }
+
+    spdlog::info("vocabulary successfully exported to the file \'{}\'", path.string());
 }
 
-void Vocabulary::load(std::filesystem::path const path)
+// // void addWordsFromFile(std::filesystem::path const& path);
+
+// // import, export vocabulary
+// void loadFromFile(std::filesystem::path const& path);
+// void saveToFile(std::filesystem::path const& path);
+
+Word& Vocabulary::nextWordToLearn()
 {
-    std::ifstream inputFile(path /* , std::ios::app */);
-    try {
-        // std::array<char, 1024> ch_line;
-        for (std::array<char, 1024> a; inputFile.getline(&a[0], a.size(), '\n');) {
-            auto word{deserialize(std::string{a.data()})};
-            vocabulary_[word.first] = word.second;
-        }
-        // while (!inputFile.eof()) {
-        //     auto line{inputFile.getline(ch_line.data(), ch_line.size(), '\n')};
-        //     auto word{deserialize(line)};
-        //     vocabulary[word.first] = word.second;
-        // }
-    } catch (std::exception const& e) {
-        spdlog::error("{}", e.what());
+    if (words_.empty()) {
+        const auto msg{"nothing to learn"};
+        // spdlog::error("{}(): {}", __FUNCTION__, msg);
+        throw VocabularyError(msg);
     }
+
+    try {
+        return words_.at(next_word_index_++);
+    } catch (...) {
+        spdlog::error("{}(): word with index {} does not exists", __FUNCTION__,
+                      next_word_index_);
+    }
+
+    next_word_index_ = 0;
+
+    return words_.front();
+}
+
+std::vector<Word> const& Vocabulary::words() const { return words_; }
+
+// private ================================================
+
+Word& Vocabulary::findWord(std::string_view const word)
+{
+    for (auto& w : words_) {
+        if (w.word() == word) {
+            return w;
+        }
+    }
+    auto const msg{
+        fmt::format("{}(): word {} is not found in the vocabulary", __FUNCTION__, word)};
+    // spdlog::error(msg);
+    throw VocabularyError(msg);
 }
 
 }  // namespace vocabulary
