@@ -89,8 +89,12 @@ public:
     // loading and saving of whole vocabulary
     void loadFromFile(std::filesystem::path const& path,
                       char item_delim = kDefaultItemsDelimiter,
-                      char field_delim = kDefaultFieldsDelimiter){};
-    void saveToFile(std::filesystem::path const& path){};
+                      char field_delim = kDefaultFieldsDelimiter){
+                        (void)path;
+                        (void)item_delim;
+                        (void)field_delim;
+                      };
+    void saveToFile(std::filesystem::path const& path){ (void)path; };
 
     /**
      * @throw VocabularyError if there is no word to learn
@@ -101,6 +105,7 @@ public:
 
 private:
     const uint8_t kRetentionPercentageForKnownWord{90};
+    size_t next_word_index_{0};
     std::vector<Word> words_;
     // std::weak_ptr<LearningStrategies::Strategy> learning_strategy_;
 

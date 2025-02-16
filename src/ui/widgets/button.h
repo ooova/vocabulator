@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <functional>
+// #include <memory>
 #include <string_view>
 #include <thread>
 
@@ -24,7 +25,7 @@ public:
         , font_{std::move(font)}
         , button_color_{color}
         , clickCallback_{clickCallback}
-        , button_click_poll_{[this]() {
+        , button_click_poll_{/* std::make_unique( */[this]() {
             auto clicked{RMouse::IsButtonPressed(::MOUSE_LEFT_BUTTON)};
             while (!stop_) {
                 if (clickCallback_ && !clicked &&
@@ -68,7 +69,7 @@ private:
     RColor const button_color_{};
     RText text_{};
     ClickCallback clickCallback_{};
-    tools::AsyncWrapper button_click_poll_;
+    /* std::unique_ptr< */::tools::AsyncWrapper button_click_poll_/* {nullptr} */;
     std::atomic_bool stop_{false};
 };
 

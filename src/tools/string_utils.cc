@@ -20,7 +20,7 @@ void removeSuffix(std::string& str, char ch)
 
 void removePrefixSpacesAndTabs(std::string& str)
 {
-    auto count{0};
+    auto count{0UL};
     while ((count != str.size()) && ((str.at(count) == ' ') || (str.at(count) == '\t'))) {
         ++count;
     }

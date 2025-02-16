@@ -1,6 +1,7 @@
 #include "vocabulary/word.h"
 
 #include "common/exceptions/parsing_error.h"
+#include "spdlog/spdlog.h"
 #include "tools/string_utils.h"
 
 // #include <algorithm>
@@ -11,6 +12,8 @@ namespace vocabulary {
 Word Word::parse(std::string_view str, char item_delim, char field_delim)
 {
     auto string{std::string{str}};
+
+    spdlog::trace("string to parse: {}", string);
 
     tools::string_utils::removePrefixSpacesAndTabs(string);
     tools::string_utils::removePrefix(string, field_delim);

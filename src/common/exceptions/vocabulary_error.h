@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-class VocabularyError : std::runtime_error {
+class VocabularyError : public std::runtime_error {
 public:
     VocabularyError(std::string const& msg)
         : std::runtime_error(msg)

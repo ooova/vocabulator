@@ -50,7 +50,7 @@ Translation Translation::parse(std::string_view str, char const item_delim,
     removeEmptyStrings(parts);
     if (parts.empty()) {
         auto const message{"parsing error: string doesn't contain anything useful"};
-        spdlog::critical(message);
+        // spdlog::critical(message);
         throw ParsingError(message);
     }
 
@@ -60,7 +60,7 @@ Translation Translation::parse(std::string_view str, char const item_delim,
 
     if (variants.empty()) {
         auto const message{"parsing error: \"variants\" of the translation are empty"};
-        spdlog::critical(message);
+        // spdlog::critical(message);
         throw ParsingError(message);
     }
 
