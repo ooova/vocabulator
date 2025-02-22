@@ -1,0 +1,38 @@
+@startuml
+
+title Vocabulary static structure
+
+namespace vocabulary {
+
+class Translation {
+  - std::vector<std::string> variants_
+  - std::vector<std::string> examples_
+  + parse(std::string_view, char, char)
+  + toString() : std::string
+  + variants() : std::vector<std::string>
+  + examples() : std::vector<std::string>
+}
+
+class Word {
+  - int impressions_number_
+  - int know_number_
+  - std::string word_
+  - Translation translation_
+  + parse(std::string_view, char, char)
+  + toString() : std::string
+  + translation() : Translation const&
+}
+
+class Vocabulary {
+  - std::vector<Word> words_
+  + translate(std::string_view) : Translation const&
+  + nextWordToLearn() : Word&
+  + words() : std::vector<Word> const&
+}
+
+Word --> Translation : uses
+Vocabulary --> "0..*" Word : contains
+
+}
+
+@enduml
