@@ -8,7 +8,7 @@
 // #include <cmath> // NOLINT
 #include <string_view>
 
-constexpr const auto kDefaultVocabularyPath{std::string_view{"assets/vocabulary.md"}};
+constexpr const auto kDefaultVocabularyPath{std::string_view{"../assets/vocabulary.md"}};
 
 std::vector<
     std::map<std::string /*native*/, std::pair<std::vector<std::string> /*foreign*/,

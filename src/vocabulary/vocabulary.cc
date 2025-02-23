@@ -1,6 +1,7 @@
 #include "vocabulary.h"
 
-#include <fmt/format.h>
+// #include <fmt/format.h>
+#include <format>
 
 #include <array>
 #include <fstream>
@@ -134,17 +135,17 @@ Word& Vocabulary::findWord(std::string_view const word)
     throw VocabularyError(msg);
 }
 
-void Vocabulary::exportToFile(std::filesystem::path const& path)
-{
-    std::ofstream outputFile(path /* , std::ios::app */);
-    try {
-        for (auto const& word : words_) {
-            outputFile << word.toString() << '\n';
-        }
-    } catch (std::exception const& e) {
-        spdlog::error("{}", e.what());
-    }
-}
+// void Vocabulary::exportToFile(std::filesystem::path const& path)
+// {
+//     std::ofstream outputFile(path /* , std::ios::app */);
+//     try {
+//         for (auto const& word : words_) {
+//             outputFile << word.toString() << '\n';
+//         }
+//     } catch (std::exception const& e) {
+//         spdlog::error("{}", e.what());
+//     }
+// }
 
 // // void addWordsFromFile(std::filesystem::path const& path);
 
@@ -152,32 +153,32 @@ void Vocabulary::exportToFile(std::filesystem::path const& path)
 // void loadFromFile(std::filesystem::path const& path);
 // void saveToFile(std::filesystem::path const& path);
 
-Word& Vocabulary::nextWordToLearn()
-{
-    if (words_.empty()) {
-        const auto msg{"nothing to learn"};
-        spdlog::error("{}(): {}", __FUNCTION__, msg);
-        throw VocabularyError(msg);
-    }
+// Word& Vocabulary::nextWordToLearn()
+// {
+//     if (words_.empty()) {
+//         const auto msg{"nothing to learn"};
+//         spdlog::error("{}(): {}", __FUNCTION__, msg);
+//         throw VocabularyError(msg);
+//     }
 
-    return words_.front();
-}
+//     return words_.front();
+// }
 
-std::vector<Word> const& Vocabulary::words() const { return words_; }
+// std::vector<Word> const& Vocabulary::words() const { return words_; }
 
 // private ================================================
 
-Word& Vocabulary::findWord(std::string_view const word)
-{
-    for (auto& w : words_) {
-        if (w.word() == word) {
-            return w;
-        }
-    }
-    auto const msg{
-        fmt::format("{}(): word {} is not found in the vocabulary", __FUNCTION__, word)};
-    spdlog::error(msg);
-    throw VocabularyError(msg);
-}
+// Word& Vocabulary::findWord(std::string_view const word)
+// {
+//     for (auto& w : words_) {
+//         if (w.word() == word) {
+//             return w;
+//         }
+//     }
+//     auto const msg{
+//         fmt::format("{}(): word {} is not found in the vocabulary", __FUNCTION__, word)};
+//     spdlog::error(msg);
+//     throw VocabularyError(msg);
+// }
 
 }  // namespace vocabulary
