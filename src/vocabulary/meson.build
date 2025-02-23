@@ -1,0 +1,1 @@
+src += files('translation.cc', 'vocabulary.cc', 'word.cc')
