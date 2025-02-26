@@ -15,7 +15,9 @@ src = []
 subdir('src')
 
 static_libs = ['/storage/ova/projects/my/vocabulator/with-raylib-cpp/raylib/src/libraylib.a']
-# lib_xkbcommon = dependencies('xkbcommon')
+x11_dep = dependency('x11', required: true, method: 'pkg-config')
+gl_dep =  dependency('GL')
+dl_dep = dependency('dl')
 
 executable(
         'vocabulator',
@@ -23,12 +25,5 @@ executable(
         link_args : static_libs,
         include_directories: inc_dirs,
         cpp_args : cpp_options,
-        # dependencies: lib_xkbcommon
+        dependencies: [ x11_dep, gl_dep, dl_dep]
     )
-
-# mylib_dep = declare_dependency(
-#   link_args: ['/path/to/libmylib.a'],
-#   include_directories: include_directories('/path/to/include')
-# )
-
-# executable('my_program', 'main.c', dependencies: [mylib_dep])

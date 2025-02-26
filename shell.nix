@@ -12,7 +12,6 @@
       pkgs.xorg.libXinerama
       pkgs.xorg.libXrandr
 
-      # Web support (uncomment to enable)
-      # pkgs.emscripten
+      pkgs.pkg-config
     ];
 }
