@@ -42,7 +42,7 @@ private:
     //                        kCardHeight + kElementMargin};
     // const RVector2 kAddNewWordBoxSize{kScreenWidth + 2 * kScreenMargin, kCardHeight};
 
-    const std::string font_file_path_{"./assets/fonts/Ubuntu-R.ttf"};
+    const std::string font_file_path_{"../assets/fonts/Ubuntu-R.ttf"};
     std::array<tools::Language, 4> char_set_{
         tools::Language::kRU, tools::Language::kEN, tools::Language::kMathSymbols,
         tools::Language::kSpecSymbols};

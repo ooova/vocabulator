@@ -18,7 +18,7 @@ public:
     };
 
     TextBox(RVector2 position, RVector2 size, RFont&& font, bool input = false,
-            RColor textColor = RColor::White(), RColor backgroundColor = {0x00})
+            RColor textColor = RColor::White(), RColor backgroundColor = RColor::Black()/* {0x00} */)
         : RRectangle(position.GetX(), position.GetY(), size.GetX(), size.GetY())
         , font_{std::move(font)}
         , input_{input}
