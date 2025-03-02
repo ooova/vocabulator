@@ -5,7 +5,7 @@ namespace ui::widgets {
 Card::Card(RVector2 position, RVector2 size, vocabulary::Word const& word, RFont&& font)
     : text_box_{position, size, std::move(font)}
 {
-    setWord(word);
+    // setWord(word);
 }
 
 void Card::draw() { text_box_.draw(); }

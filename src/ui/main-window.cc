@@ -8,6 +8,7 @@
 
 #include "ui/tools/text.h"
 #include "vocabulary/vocabulary.h"
+#include "spdlog/spdlog.h"
 
 namespace {
 
@@ -31,16 +32,22 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary)
     //                         [] { spdlog::info("\'previous\' button clicked"); },
     //                         tools::createFont(font_file_path_,
     //                         Locale::getAlphabet(char_set_))}
-    , button_next_word_{{kScreenMargin + ((kScreenWidth - 2 * kScreenMargin) / 3) * 2 -
-                             kButtonWidth / 2,
-                         kScreenHeight - kScreenMargin - kButtonHeighth},
+    , button_next_word_{
+        // {kScreenMargin + ((kScreenWidth - 2 * kScreenMargin) / 3) * 2 -
+        //                      kButtonWidth / 2,
+        //                  kScreenHeight - kScreenMargin - kButtonHeighth},
+                        {650, kScreenMargin},
                         {kButtonWidth, kButtonHeighth},
                         Locale::translateInterface("next"),
                         [this] {
-                            // if (auto v = vocabulary_.lock()) {
-                            //     if (auto word{v->getWord()}. )
-                            //     card_.setWord(word);
-                            // }
+                            if (auto v = vocabulary_.lock()) {
+                                try {
+                                    // if (auto word{} )
+                                    card_.setWord(v->nextWordToLearn());
+                                } catch (VocabularyError const& ex) {
+                                    spdlog::error(ex.what());
+                                }
+                            }
                         },
                         tools::createFont(font_file_path_,
                                           Locale::getAlphabet(char_set_))}

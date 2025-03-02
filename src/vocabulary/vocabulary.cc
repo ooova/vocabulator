@@ -1,6 +1,5 @@
 #include "vocabulary.h"
 
-// #include <fmt/format.h>
 #include <format>
 
 #include <array>
@@ -10,6 +9,7 @@
 #include <stdexcept>
 
 #include "spdlog/spdlog.h"
+#include "tools/random_number.h"
 
 namespace vocabulary {
 
@@ -92,25 +92,18 @@ void Vocabulary::exportToFile(std::filesystem::path const& path)
     spdlog::info("vocabulary successfully exported to the file \'{}\'", path.string());
 }
 
-// // void addWordsFromFile(std::filesystem::path const& path);
-
-// // import, export vocabulary
-// void loadFromFile(std::filesystem::path const& path);
-// void saveToFile(std::filesystem::path const& path);
-
 Word& Vocabulary::nextWordToLearn()
 {
     if (words_.empty()) {
-        const auto msg{"nothing to learn"};
-        // spdlog::error("{}(): {}", __FUNCTION__, msg);
+        const auto msg{"Nothing to learn. Vocabulary is empty"};
         throw VocabularyError(msg);
     }
 
     try {
-        return words_.at(next_word_index_++);
+        return words_.at(tools::getRandomNumber(0, words_.size()-1)/* next_word_index_++ */);
     } catch (...) {
-        spdlog::error("{}(): word with index {} does not exists", __FUNCTION__,
-                      next_word_index_);
+        // spdlog::error("{}(): word with index {} does not exists", __FUNCTION__,
+        //               next_word_index_);
     }
 
     next_word_index_ = 0;
@@ -134,51 +127,5 @@ Word& Vocabulary::findWord(std::string_view const word)
     // spdlog::error(msg);
     throw VocabularyError(msg);
 }
-
-// void Vocabulary::exportToFile(std::filesystem::path const& path)
-// {
-//     std::ofstream outputFile(path /* , std::ios::app */);
-//     try {
-//         for (auto const& word : words_) {
-//             outputFile << word.toString() << '\n';
-//         }
-//     } catch (std::exception const& e) {
-//         spdlog::error("{}", e.what());
-//     }
-// }
-
-// // void addWordsFromFile(std::filesystem::path const& path);
-
-// // import, export vocabulary
-// void loadFromFile(std::filesystem::path const& path);
-// void saveToFile(std::filesystem::path const& path);
-
-// Word& Vocabulary::nextWordToLearn()
-// {
-//     if (words_.empty()) {
-//         const auto msg{"nothing to learn"};
-//         spdlog::error("{}(): {}", __FUNCTION__, msg);
-//         throw VocabularyError(msg);
-//     }
-
-//     return words_.front();
-// }
-
-// std::vector<Word> const& Vocabulary::words() const { return words_; }
-
-// private ================================================
-
-// Word& Vocabulary::findWord(std::string_view const word)
-// {
-//     for (auto& w : words_) {
-//         if (w.word() == word) {
-//             return w;
-//         }
-//     }
-//     auto const msg{
-//         fmt::format("{}(): word {} is not found in the vocabulary", __FUNCTION__, word)};
-//     spdlog::error(msg);
-//     throw VocabularyError(msg);
-// }
 
 }  // namespace vocabulary

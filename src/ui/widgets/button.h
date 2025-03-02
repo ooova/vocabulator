@@ -25,16 +25,21 @@ public:
         , font_{std::move(font)}
         , button_color_{color}
         , clickCallback_{clickCallback}
-        , button_click_poll_{/* std::make_unique( */[this]() {
-            auto clicked{RMouse::IsButtonPressed(::MOUSE_LEFT_BUTTON)};
+        , button_click_poll_{[this]() {
+            auto clicked{false};
             while (!stop_) {
-                if (clickCallback_ && !clicked &&
-                    RMouse::IsButtonPressed(::MOUSE_LEFT_BUTTON) &&
-                    CheckCollision(::GetMousePosition())) {
+                // method RMouse::IsButtonPressed(::MOUSE_LEFT_BUTTON) is not used here
+                // because it is unreliable
+                if (!clicked &&
+                    RMouse::IsButtonDown(::MOUSE_LEFT_BUTTON) &&
+                    CheckCollision(::GetMousePosition()) &&
+                    clickCallback_) {
                     clicked = true;
                     clickCallback_();
                 }
-                clicked = RMouse::IsButtonDown(::MOUSE_LEFT_BUTTON);
+                if (RMouse::IsButtonUp(::MOUSE_LEFT_BUTTON)) {
+                    clicked = false;
+                }
                 std::this_thread::sleep_for(kPollingSleepTimeMS);
             }
         }}
@@ -62,14 +67,14 @@ public:
     }
 
 private:
-    std::chrono::milliseconds const kPollingSleepTimeMS{20};
+    std::chrono::milliseconds const kPollingSleepTimeMS{100};
     int const kFontSize_{16};
 
     RFont const font_{};
     RColor const button_color_{};
     RText text_{};
     ClickCallback clickCallback_{};
-    /* std::unique_ptr< */::tools::AsyncWrapper button_click_poll_/* {nullptr} */;
+    ::tools::AsyncWrapper button_click_poll_;
     std::atomic_bool stop_{false};
 };
 
