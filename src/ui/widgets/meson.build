@@ -1,1 +1,1 @@
-src += files('card.cc')
+src += files('card.cc', 'text-box.cc', 'text-input.cc')
