@@ -206,7 +206,12 @@ void TextInput::insertCharacter(char ch) {
     try {
         auto& text = text_.at(cursorPosition_.GetY()).first.text;
         const auto& index = cursorPosition_.GetX();
-        text.insert(index + 1, 1, ch);
+        if (text.empty()) {
+            text.push_back(ch);
+        }
+        else {
+            text.insert(index + 1, 1, ch);
+        }
         moveCursorRight();
     } catch (std::exception const& ex) {
         spdlog::error("can not insert character at position \'{}\': ",
