@@ -35,6 +35,8 @@ public:
 
     void draw();
 
+    void update(float dt);
+
 private:
     // const RVector2 kAddNewWordBoxPosition{
     //     kScreenMargin, kScreenMargin + kElementMargin + kButtonHeighth + kElementMargin

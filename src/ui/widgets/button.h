@@ -20,51 +20,15 @@ public:
     using ClickCallback = std::function<void(void)>;
 
     Button(RVector2 position, RVector2 size, std::string_view const text,
-           ClickCallback clickCallback, RFont&& font = {}, RColor color = RColor::Gray())
-        : RRectangle(position.GetX(), position.GetY(), size.GetX(), size.GetY())
-        , font_{std::move(font)}
-        , button_color_{color}
-        , clickCallback_{clickCallback}
-        , button_click_poll_{[this]() {
-            auto clicked{false};
-            while (!stop_) {
-                // method RMouse::IsButtonPressed(::MOUSE_LEFT_BUTTON) is not used here
-                // because it is unreliable
-                if (!clicked &&
-                    RMouse::IsButtonDown(::MOUSE_LEFT_BUTTON) &&
-                    CheckCollision(::GetMousePosition()) &&
-                    clickCallback_) {
-                    clicked = true;
-                    clickCallback_();
-                }
-                if (RMouse::IsButtonUp(::MOUSE_LEFT_BUTTON)) {
-                    clicked = false;
-                }
-                std::this_thread::sleep_for(kPollingSleepTimeMS);
-            }
-        }}
-    {
-        setText(text);
-        spdlog::trace("\ntext width: {}\nbutton width: {}\nX position: {}",
-                      text_.MeasureEx().GetX(), RRectangle::GetSize().GetX(),
-                      RRectangle::GetPosition().GetX());
-    }
+           ClickCallback clickCallback, RFont&& font = {}, RColor color = RColor::Gray());
 
-    ~Button() { stop_ = true; }
+    ~Button();
 
-    void setText(std::string_view const text)
-    {
-        text_ = RText(font_, std::string(text), kFontSize_);
-    }
+    void setText(std::string_view const text);
 
-    void draw() const
-    {
-        RRectangle::Draw(button_color_);
-        text_.Draw(RRectangle::GetPosition().GetX() +
-                       (RRectangle::GetSize().GetX() / 2 - text_.MeasureEx().GetX() / 2),
-                   RRectangle::GetPosition().GetY() +
-                       (RRectangle::GetSize().GetY() / 2 - kFontSize_ / 2));
-    }
+    void draw() const;
+
+    void update(float dt);
 
 private:
     std::chrono::milliseconds const kPollingSleepTimeMS{100};
@@ -74,7 +38,6 @@ private:
     RColor const button_color_{};
     RText text_{};
     ClickCallback clickCallback_{};
-    ::tools::AsyncWrapper button_click_poll_;
     std::atomic_bool stop_{false};
 };
 

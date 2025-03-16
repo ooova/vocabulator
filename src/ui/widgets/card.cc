@@ -28,4 +28,8 @@ void Card::setWord(vocabulary::Word const& word)
     }
 }
 
+void Card::update(float dt) {
+    ;
+}
+
 }  // namespace ui::widgets

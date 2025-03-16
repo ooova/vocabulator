@@ -14,6 +14,7 @@ public:
 
     void draw();
     void setWord(vocabulary::Word const& word);
+    void update(float dt);
 private:
     TextBox text_box_;
 };

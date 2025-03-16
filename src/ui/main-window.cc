@@ -114,6 +114,14 @@ void MainWindow::draw()
     RWindow::DrawFPS(10, 10);
 }
 
+void MainWindow::update(float dt) {
+    button_next_word_.update(dt);
+    button_load_vocabulary_.update(dt);
+    button_save_vocabulary_.update(dt);
+    button_vocabulary_add_word_.update(dt);
+    // card_.draw();
+}
+
 // widgets::TextBox& MainWindow::textBox() {
 //     return  text_box_;
 // }

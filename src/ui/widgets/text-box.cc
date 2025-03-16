@@ -100,4 +100,8 @@ void TextBox::addParagraph()
     text_.back().first.SetColor(textColor_);
 }
 
+void TextBox::update(float dt) {
+    ;
+}
+
 }  // namespace ui::widgets

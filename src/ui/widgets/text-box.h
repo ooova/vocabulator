@@ -27,9 +27,10 @@ public:
     void setAlignment(Alignment alignment);
 
     // void setFont(std::string_view const font_file_path);
-    // void showCursor(bool show);
 
     virtual void draw();
+
+    void update(float dt);
 
 protected:
     std::vector<std::pair<RText, Alignment>> text_{};
@@ -38,7 +39,6 @@ private:
     RFont font_{};
     RColor textColor_{RColor::Black()};
     RColor backgroundColor_{RColor::White()};
-    // bool show_cursor_{false};
 
     void initText();
 

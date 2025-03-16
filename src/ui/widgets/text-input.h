@@ -35,7 +35,7 @@ public:
 
 private:
     RVector2 cursorPosition_;
-    // bool cursor_;
+
     bool cursorVisible_ = true;
     float cursorTimer_ = 0.0f;
     const float cursorBlinkInterval_ = 0.5f;
@@ -48,8 +48,6 @@ private:
     void insertCharacter(char ch);
     void deleteCharacter(bool backspace);
     void deleteParagraph(bool backspace);
-
-    void showCursorIfNeeded(float dt);
 };
 
 } // namespace ui::widgets

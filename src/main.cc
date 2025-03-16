@@ -68,6 +68,7 @@ int main(void)
 
             window.ClearBackground({0x28, 0x28, 0x28, 0xFF});
 
+            window.update(time - prev_time);
             window.draw();
             // textBox.Draw();
 
