@@ -26,6 +26,8 @@ public:
 
     void setAlignment(Alignment alignment);
 
+    void setTextColor(RColor const& color) { textColor_ = color; }
+
     // void setFont(std::string_view const font_file_path);
 
     virtual void draw();

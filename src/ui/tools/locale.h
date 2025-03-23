@@ -57,7 +57,7 @@ private:
         {Language::kNumbers, "0123456789"},
         {Language::kMathSymbols, "()*+-/<=>"},
         {Language::kSpecSymbols, " !\"#$%&\',.:;?@[\\]^_`{|}~"},
-        {Language::kRU, "АБВГДЕЁЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзиклмнопрстуфхцчшщъыьэюя"},
+        {Language::kRU, "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя"},
         {Language::kEN, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"},
         {Language::kBG, ""},
         {Language::kDE, ""},

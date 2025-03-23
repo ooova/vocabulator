@@ -3,11 +3,33 @@
 #include "spdlog/spdlog.h"
 
 #include <iterator>
+#include <codecvt>
 
 namespace ui::widgets {
 
+TextInput::TextInput(RVector2 position, RVector2 size, RFont&& font,
+        RColor textColor, RColor backgroundColor)
+    : TextBox(position, size, std::move(font), textColor, backgroundColor)
+    , cursorPosition_{0}
+    , textColor_{textColor}
+{
+    // TextBox::setText("Hello world\nHello from Mars\nI'm here");
+    // spdlog::trace("lagger \'0\': {}", text_.at(0).first.font.glyphs[0].value);
+}
+
 void TextInput::update(float dt)
 {
+    if (RMouse::IsButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (CheckCollision(RMouse::GetPosition())) {
+            in_focus_ = true;
+            TextBox::setTextColor(textColor_);
+        }
+        else {
+            TextBox::setTextColor(RColor::Gray());
+            in_focus_ = false;
+        }
+    }
+
     if (CheckCollision(RMouse::GetPosition())) {
         RMouse::SetCursor(MOUSE_CURSOR_IBEAM);
     }
@@ -15,6 +37,19 @@ void TextInput::update(float dt)
         RMouse::SetCursor(MOUSE_CURSOR_DEFAULT);
     }
 
+    if (in_focus_) {
+        handleInput();
+    }
+
+    cursor_timer_ += dt;
+    if (cursor_timer_ >= cursor_blink_interval_) {
+        cursor_timer_ = 0.0f;
+        cursor_visible_ = !cursor_visible_;
+    }
+}
+
+void TextInput::handleInput()
+{
     const auto key_code = RKeyboard::GetKeyPressed();
     const auto char_code = RKeyboard::GetCharPressed();
     if (key_code) {
@@ -44,21 +79,20 @@ void TextInput::update(float dt)
                 deleteCharacter(false);
                 spdlog::trace("cursor position \'{}\': ", cursorPosition_.ToString());
                 break;
+            case static_cast<int>(KeyCodes::kEnter):
+                insertCharacter('\n');
+                break;
             default:
-                // spdlog::info("no dedicated method to handle key code")
                 if (char_code) {
-                    auto ch = static_cast<char>(char_code);
-                    spdlog::trace("char: {}", ch);
-                    insertCharacter(ch);
+
+                    // auto ch = static_cast<char>(char_code);
+                    spdlog::trace("char: {}", char_code);
+
+
+                    insertCharacter(char_code);
                 }
                 break;
         }
-    }
-
-    cursorTimer_ += dt;
-    if (cursorTimer_ >= cursorBlinkInterval_) {
-        cursorTimer_ = 0.0f;
-        cursorVisible_ = !cursorVisible_;
     }
 }
 
@@ -67,7 +101,7 @@ void TextInput::update(float dt)
 
 //     // grok
 //     // Отрисовываем курсор, если он виден
-//     if (cursorVisible_) {
+//     if (cursor_visible_) {
 //         try {
 //             RVector2 cursorPos = RRectangle::GetPosition();
 //             const auto& paragraph = text_.at(cursorPosition_.GetY());
@@ -114,7 +148,7 @@ void TextInput::update(float dt)
 
 // grok: draw with cursor as _ symbol
 void TextInput::draw() {
-    if (cursorVisible_) {
+    if (cursor_visible_ && in_focus_) {
         try {
             auto& text = text_.at(cursorPosition_.GetY()).first.text;
             if (cursorPosition_.GetX() < text.size()) {
@@ -137,6 +171,14 @@ void TextInput::draw() {
     } else {
         TextBox::draw(); // Отрисовываем без курсора
     }
+}
+
+std::string TextInput::text(bool with_new_lines) const {
+    std::string result;
+    for (const auto& line : text_) {
+        result += line.first.GetText() + (with_new_lines ? "\n" : "");
+    }
+    return result;
 }
 
 void TextInput::moveCursorLeft()
@@ -197,28 +239,43 @@ void TextInput::normalizeCursor() {
     }
 }
 
-
-// TODO: insert char into specific (Y-th) paragraph
-// void TextInput::insertCharacter(char ch) {
-//     TextBox::operator<<(std::string{ch});
-// }
-void TextInput::insertCharacter(char ch) {
+void TextInput::insertCharacter(char32_t ch) {
     try {
-        auto& text = text_.at(cursorPosition_.GetY()).first.text;
-        const auto& index = cursorPosition_.GetX();
-        if (text.empty()) {
-            text.push_back(ch);
+        // convert utf8 char to sts::string
+        std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+        std::string utf8_string = converter.to_bytes(ch);
+
+        if (text_.empty()) {
+            TextBox::setText(std::string{utf8_string});
         }
         else {
-            text.insert(index + 1, 1, ch);
+            std::string raw_text{};
+            for (auto y = 0UL; y < text_.size(); ++y) {
+                auto const& paragraph{text_.at(y).first.GetText()};
+                if (y == cursorPosition_.GetY()) {
+                    auto const chars_count{cursorPosition_.GetX() + 1};
+                    raw_text += paragraph.substr(0, chars_count)
+                                + utf8_string
+                                + ((paragraph.size() < chars_count) ? "" : paragraph.substr(chars_count));
+                } else {
+                    raw_text += paragraph;
+                }
+                if (y < text_.size() - 1) {
+                    raw_text += '\n';
+                }
+            }
+            TextBox::setText(raw_text);
+            if (utf8_string == "\n") {
+                moveCursorDown();
+            }
         }
         moveCursorRight();
-    } catch (std::exception const& ex) {
-        spdlog::error("can not insert character at position \'{}\': ",
-                      cursorPosition_.ToString(), ex.what());
+    } catch (const std::out_of_range& e) {
+        spdlog::error("Error: Out of range exception occurred while inserting character.");
+    } catch (const std::exception& e) {
+        spdlog::error("An unexpected error occurred: {}", e.what());
     }
 }
-
 
 void TextInput::deleteCharacter(bool backspace)
 {
