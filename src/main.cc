@@ -13,20 +13,20 @@
 #include "ui/widgets/text-input.h"
 // #include "ui/tools/text.h"
 #include "ui/tools/locale.h"
-const std::string font_file_path_{"../assets/fonts/Ubuntu-R.ttf"};
-std::array<ui::tools::Language, 4> char_set_{
-    ui::tools::Language::kRU, ui::tools::Language::kEN, ui::tools::Language::kMathSymbols,
-    ui::tools::Language::kSpecSymbols};
-RFont makeFont(std::filesystem::path font_file_path, std::string_view char_set, int const font_size = 36)
-{
-    auto codepointsCount{0};
-    auto codepoints =
-        ::LoadCodepoints(char_set.data(), &codepointsCount);
-    auto font{
-        RFont(std::string(font_file_path), font_size, codepoints, codepointsCount)};
-    ::UnloadCodepoints(codepoints);
-    return font;
-}
+// const std::string font_file_path_{"../assets/fonts/Ubuntu-R.ttf"};
+// std::array<ui::tools::Language, 4> char_set_{
+//     ui::tools::Language::kRU, ui::tools::Language::kEN, ui::tools::Language::kMathSymbols,
+//     ui::tools::Language::kSpecSymbols};
+// RFont makeFont(std::filesystem::path font_file_path, std::string_view char_set, int const font_size = 36)
+// {
+//     auto codepointsCount{0};
+//     auto codepoints =
+//         ::LoadCodepoints(char_set.data(), &codepointsCount);
+//     auto font{
+//         RFont(std::string(font_file_path), font_size, codepoints, codepointsCount)};
+//     ::UnloadCodepoints(codepoints);
+//     return font;
+// }
 
 constexpr const auto kDefaultVocabularyPath{std::string_view{"../assets/vocabulary.md"}};
 
@@ -43,8 +43,6 @@ int main(void)
         auto window = ui::MainWindow(vocabulary);  // initWindow();
 
         // window.textBox().setText("uno due tre"sv);
-
-        ui::widgets::TextInput input{{200, 100}, {100,100}, makeFont(font_file_path_, ui::tools::Locale::getAlphabet(char_set_))/* {} */};
 
         SetTargetFPS(40);
         //----------------------------------------------------------
@@ -80,8 +78,6 @@ int main(void)
             EndDrawing();
             //-----------------------------------------------------
 
-            input.update(time - prev_time);
-            input.draw();
             prev_time = time;
         }
     } catch (raylib::RaylibException const& ex) {

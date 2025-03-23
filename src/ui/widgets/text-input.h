@@ -19,35 +19,39 @@ public:
         kBackspace = 259,
         kDel = 261,
         // kEsc = 256,
+        kEnter = 257,
     };
 
 public:
     TextInput(RVector2 position, RVector2 size, RFont&& font,
-            RColor textColor = RColor::Black(), RColor backgroundColor = RColor::White()/* RColor(0x00) */)
-        : TextBox(position, size, std::move(font), textColor, backgroundColor)
-        , cursorPosition_(0) {
-        TextBox::setText("Hello world\nHello from Mars\nI'm here");
-        spdlog::trace("lagger \'0\': {}", text_.at(0).first.font.glyphs[0].value);
-    }
+            RColor textColor = RColor::Black(), RColor backgroundColor = RColor::White()/* RColor(0x00) */);
+
+    bool isInFocus() { return in_focus_; }
 
     void update(float dt);
     void draw();
 
+    std::string text(bool with_new_lines = false) const;
+
 private:
     RVector2 cursorPosition_;
+    RColor textColor_;
 
-    bool cursorVisible_ = true;
-    float cursorTimer_ = 0.0f;
-    const float cursorBlinkInterval_ = 0.5f;
+    bool cursor_visible_{true};
+    float cursor_timer_{0.0f};
+    const float cursor_blink_interval_{0.5f};
+    bool in_focus_{false};
 
     void moveCursorLeft();
     void moveCursorRight();
     void moveCursorDown();
     void moveCursorUp();
     void normalizeCursor();
-    void insertCharacter(char ch);
+    void insertCharacter(char32_t ch);
     void deleteCharacter(bool backspace);
     void deleteParagraph(bool backspace);
+
+    void handleInput();
 };
 
 } // namespace ui::widgets

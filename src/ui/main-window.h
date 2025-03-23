@@ -9,6 +9,7 @@
 #include "./widgets/button.h"
 #include "raylib-cpp.hpp"
 #include "ui/widgets/card.h"
+#include "ui/widgets/text-input.h"
 
 namespace vocabulary {
 class Vocabulary;
@@ -23,7 +24,7 @@ constexpr int kScreenHeight{450};
 constexpr int kScreenMargin{10};
 
 constexpr int kButtonWidth{100};
-constexpr int kButtonHeighth{30};
+constexpr int kButtonHeight{30};
 
 constexpr int kElementMargin{5};
 
@@ -57,6 +58,9 @@ private:
     widgets::Button button_save_vocabulary_;
     widgets::Button button_vocabulary_add_word_;
     widgets::Card card_;
+    widgets::TextInput new_word_input_;
+    widgets::TextInput new_word_translation_input_;
+    widgets::TextInput new_word_example_input_;
 };
 
 }  // namespace ui
