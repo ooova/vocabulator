@@ -10,6 +10,8 @@
 #include "vocabulary/vocabulary.h"
 #include "vocabulary/translation.h"
 #include "spdlog/spdlog.h"
+#include "nlohmann/json.hpp"
+#include "network/http/client/nttp_client.h"
 
 namespace {
 
@@ -22,9 +24,10 @@ namespace ui {
 using namespace std::literals;
 using tools::Locale;
 
-MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary)
+MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::weak_ptr<network::HttpClient> http_client)
     : RWindow(kScreenWidth, kScreenHeight, "Vocabulator")
     , vocabulary_{vocabulary}
+    , http_client_{http_client}
     // , button_previous_word_{{kScreenMargin + (kScreenWidth - 2 * kScreenMargin) / 3 -
     //                              kButtonWidth / 2,
     //                          kScreenHeight - kScreenMargin - kButtonHeight},
@@ -56,12 +59,12 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary)
                               {kButtonWidth, kButtonHeight},
                               Locale::translateInterface("load vocabulary"),
                               [this] {
-                                  //   if (auto v = vocabulary_.lock()) {
-                                  //       v->load("test.voc");
-                                  //   } else {
-                                  //       spdlog::critical(
-                                  //           "vocabulary is not available (destroyed)");
-                                  //   }
+                                    if (auto v = vocabulary_.lock()) {
+                                        v->importFromFile/* load */(""/* "test.voc" */);
+                                    } else {
+                                        spdlog::critical(
+                                            "vocabulary is not available (destroyed)");
+                                    }
                               },
                               tools::createFont(font_file_path_,
                                                 Locale::getAlphabet(char_set_))}
@@ -69,12 +72,12 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary)
                               {kButtonWidth, kButtonHeight},
                               Locale::translateInterface("save vocabulary"),
                               [this] {
-                                  //   if (auto v = vocabulary_.lock()) {
-                                  //       v->save("test.voc");
-                                  //   } else {
-                                  //       spdlog::critical(
-                                  //           "vocabulary is not available (destroyed)");
-                                  //   }
+                                    if (auto v = vocabulary_.lock()) {
+                                        v->exportToFile(""/* "test.voc" */);
+                                    } else {
+                                        spdlog::critical(
+                                            "vocabulary is not available (destroyed)");
+                                    }
                               },
                               tools::createFont(font_file_path_,
                                                 Locale::getAlphabet(char_set_))}
@@ -83,7 +86,49 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary)
                                   Locale::translateInterface("add word"),
                                   [this] {
                                       if (auto voc = vocabulary_.lock(); voc) {
-                                        voc->addWord(new_word_input_.text(), vocabulary::Translation::parse(new_word_translation_input_.text()));
+                                            if (new_word_input_.text().empty()) {
+                                                spdlog::error("Word is empty");
+                                                return;
+                                            }
+                                            std::string translation{};
+                                            if (new_word_translation_input_.text().empty()) {
+                                                if (auto client = http_client_.lock(); client) {
+                                                    auto response_promise{std::promise<void>()};
+                                                    auto response_received{response_promise.get_future()};
+                                                    network::Request::Callback&& http_response_handler =
+                                                        [this, &translation, &response_promise](const std::string& response,
+                                                            const std::string& error) {
+                                                            if (!error.empty()) {
+                                                                spdlog::error("Ошибка: {}", error);
+                                                            }
+                                                            else {
+                                                                spdlog::info("response:\n{}", response);
+                                                                auto json_response = nlohmann::json::parse(response);
+                                                                translation = json_response["choices"][0]["message"]["content"];
+                                                            }
+                                                            response_promise.set_value();
+                                                        };
+                                                    auto request = createRequest(new_word_input_.text(),
+                                                                            std::move(http_response_handler));
+                                                    client->sendRequest(request);
+                                                    response_received.wait();
+                                                }
+                                                else {
+                                                    spdlog::error("Http client is not available (or destroyed)");
+                                                    return;
+                                                }
+                                            }
+                                            else {
+                                                translation = new_word_translation_input_.text();
+                                            }
+                                        voc->addWord(new_word_input_.text(), vocabulary::Translation::parse(translation));
+                                        spdlog::info("Word added: {} - {}", new_word_input_.text(), translation);
+                                        new_word_input_.setText("");
+                                        new_word_translation_input_.setText("");
+                                        new_word_example_input_.setText("");
+                                      }
+                                      else {
+                                            spdlog::critical("vocabulary is not available (destroyed)");
                                       }
                                   },
                                   tools::createFont(font_file_path_,
@@ -150,5 +195,35 @@ void MainWindow::update(float dt) {
 // widgets::TextBox& MainWindow::textBox() {
 //     return  text_box_;
 // }
+
+// private methods -------------------------------------------
+
+std::shared_ptr<network::Request> MainWindow::createRequest(std::string const& request,
+                               network::Request::Callback callback,
+                               std::string const& server,
+                               std::string const& port,
+                               std::string const& target,
+                               std::string const& method,
+                               std::vector<std::pair<std::string, std::string>> const& headers) {
+    nlohmann::json body;
+    body["model"] = "gemma-3-4b-it";
+    body["messages"] = nlohmann::json::array();
+    body["messages"].push_back({{"role", "system"}, {"content", "Ты переводчик русского и английского языков.\nТы должен предоставлять перевод слов и словосочетаний на русский язык, а также пример использования этого слова или словосочетания в предложении. Ответ должен состоять из одной строки, а формат ответа должен строго соответствовать следующему шаблону:\n\"<русский вариант 1> ; <русский вариант 2> | <Пример использования слова или словосочетания в предложении на английском языке>\"\n\nНапример\nслово:\n\"fine\"\nответ:\n\"хорошо ; отлично | I'm fine, thank you for asking.\""}});
+    body["messages"].push_back({{"role", "user"}, {"content", request}});
+    body["temperature"] = 0.2;
+    // "max_tokens": -1,
+    body["stream"] = false;
+
+    auto http_request = std::make_shared<network::Request>();
+    http_request->host = server;
+    http_request->port = port;
+    http_request->target = target;
+    http_request->method = method;
+    http_request->headers = headers;
+    http_request->body = body.empty() ? "" : body.dump();
+    http_request->callback = callback;
+
+    return http_request;
+}
 
 }  // namespace ui

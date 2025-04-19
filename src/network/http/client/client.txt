@@ -1,0 +1,151 @@
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <functional>
+#include <vector>
+
+#include "asio.hpp"
+#include "asio/ssl.hpp"
+
+#include "spdlog/spdlog.h"
+
+namespace network {
+
+class HttpClient {
+public:
+    using Callback = std::function<void(const std::string&, const std::string&)>;
+
+    HttpClient()
+        : io_context_{}
+        , ssl_context_(asio::ssl::context::sslv23_client)
+        , resolver_(io_context_)
+        , socket_(io_context_, ssl_context_) {
+        ssl_context_.load_verify_file("/path/tocacert.pem");
+    }
+
+    void sendRequest(const std::string& host, const std::string& target,
+                             const std::string& method, const std::vector<std::pair<std::string, std::string>>& headers,
+                             const std::string& body, Callback callback) {
+        host_ = host;
+        target_ = target;
+        method_ = method;
+        headers_ = headers;
+        body_ = body;
+        callback_ = callback;
+
+        resolver_.async_resolve(
+                host_, "443", [this](asio::error_code ec, asio::ip::tcp::resolver::results_type endpoints) {
+                    if (!ec) {
+                        asio::async_connect(socket_.lowest_layer(), endpoints,
+                                            [this](asio::error_code ec, asio::ip::tcp::endpoint) {
+                                                if (!ec) {
+                                                    socket_.async_handshake(asio::ssl::stream_base::client,
+                                                                            [this](asio::error_code ec) {
+                                                                                if (!ec) {
+                                                                                    send_request();
+                                                                                } else {
+                                                                                    handle_error("Handshake failed", ec);
+                                                                                }
+                                                                            });
+                                                } else {
+                                                    handle_error("Connect failed", ec);
+                                                }
+                                            });
+                    } else {
+                        handle_error("Resolve failed", ec);
+                    }
+                });
+    }
+    auto& getContext() {return io_context_;}
+
+private:
+    void send_request() {
+        std::ostream request_stream(&request_buffer_);
+        request_stream << method_ << " " << target_ << " HTTP/1.1\r\n";
+        request_stream << "Host: " << host_ << "\r\n";
+        for (const auto& header : headers_) {
+            request_stream << header.first << ": " << header.second << "\r\n";
+        }
+        if (!body_.empty()) {
+            request_stream << "Content-Length: " << body_.length() << "\r\n";
+        }
+        request_stream << "Connection: close\r\n\r\n";
+        request_stream << body_;
+
+        // Отправляем HTTP-запрос
+        asio::async_write(socket_, request_buffer_,
+                          [this](asio::error_code ec, std::size_t /*length*/) {
+                              if (!ec) {
+                                  // Читаем ответ
+                                  read_response();
+                              } else {
+                                  handle_error("Write failed", ec);
+                              }
+                          });
+    }
+
+    void read_response() {
+        asio::async_read_until(socket_, response_buffer_, "\r\n\r\n",
+                                [this](asio::error_code ec, std::size_t /*length*/) {
+                                    if (!ec) {
+                                        std::istream response_stream(&response_buffer_);
+                                        std::string http_version;
+                                        unsigned int status_code;
+                                        std::string status_message;
+                                        response_stream >> http_version >> status_code >> std::ws;
+                                        std::getline(response_stream, status_message);
+
+                                        std::string header;
+                                        while (std::getline(response_stream, header) && header != "\r") {
+                                            spdlog::debug("Response Header: {}", header);
+                                        }
+                                        spdlog::debug("Response Status: {} {}", status_code, status_message);
+
+                                        read_content();
+                                    } else {
+                                        handle_error("Read headers failed", ec);
+                                    }
+                                });
+    }
+
+    void read_content() {
+        asio::async_read(socket_, response_buffer_, asio::transfer_at_least(1),
+                        [this](asio::error_code ec, std::size_t /*length*/) {
+                            if (!ec) {
+                                read_content();
+                            } else if (ec == asio::error::eof) {
+                                std::istream response_stream(&response_buffer_);
+                                std::string response_body((std::istreambuf_iterator<char>(response_stream)),
+                                                                                      std::istreambuf_iterator<char>());
+                                if (callback_) {
+                                    callback_(response_body, asio::error_code().message());
+                                }
+                            } else {
+                                handle_error("Read content failed", ec);
+                            }
+                        });
+    }
+
+    void handle_error(const std::string& message, asio::error_code ec) {
+        spdlog::error("{}: {}", message, ec.message());
+        if (callback_) {
+            callback_("", ec.message());
+        }
+    }
+
+private:
+    asio::io_context io_context_;
+    asio::ssl::context ssl_context_;
+    asio::ip::tcp::resolver resolver_;
+    asio::ssl::stream<asio::ip::tcp::socket> socket_;
+    asio::streambuf request_buffer_;
+    asio::streambuf response_buffer_;
+    std::string host_;
+    std::string target_;
+    std::string method_;
+    std::vector<std::pair<std::string, std::string>> headers_;
+    std::string body_;
+    Callback callback_;
+};
+
+} // namespace network

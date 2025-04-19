@@ -16,6 +16,7 @@ namespace vocabulary {
 Vocabulary::Vocabulary(std::filesystem::path const& import_from, char item_delim,
                        char field_delim)
 {
+    import_from_file_path_ = import_from;
     importFromFile(import_from, item_delim, field_delim);
 }
 
@@ -56,10 +57,11 @@ void Vocabulary::addWord(Word&& word)
 void Vocabulary::importFromFile(std::filesystem::path const& path, char item_delim,
                                 char field_delim)
 {
-    std::ifstream inputFile(path /* , std::ios::app */);
+    auto path_ = path.empty() ? import_from_file_path_ : path;
+    std::ifstream inputFile(path_ /* , std::ios::app */);
     if (!inputFile) {
         auto const msg{
-            fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path.string())};
+            fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path_.string())};
         // spdlog::error(msg);
         throw VocabularyError(msg);
     }
@@ -75,12 +77,13 @@ void Vocabulary::importFromFile(std::filesystem::path const& path, char item_del
     }
 
     spdlog::info("vocabulary \'{}\' successfully imported. Words count: {}",
-                 path.string(), words_.size());
+                 path_.string(), words_.size());
 }
 
 void Vocabulary::exportToFile(std::filesystem::path const& path)
 {
-    std::ofstream outputFile(path /* , std::ios::app */);
+    auto path_ = path.empty() ? import_from_file_path_ : path;
+    std::ofstream outputFile(path_ /* , std::ios::app */);
     try {
         for (auto const& word : words_) {
             outputFile << word.toString() << '\n';
@@ -89,7 +92,7 @@ void Vocabulary::exportToFile(std::filesystem::path const& path)
         spdlog::error("{}", e.what());
     }
 
-    spdlog::info("vocabulary successfully exported to the file \'{}\'", path.string());
+    spdlog::info("vocabulary successfully exported to the file \'{}\'", path_.string());
 }
 
 Word& Vocabulary::nextWordToLearn()

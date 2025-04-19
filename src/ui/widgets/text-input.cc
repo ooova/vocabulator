@@ -113,7 +113,7 @@ void TextInput::handleInput()
 
 //             // Вычисляем X-позицию в зависимости от выравнивания
 //             std::string_view textBeforeCursor = std::string_view(text.text).substr(0, cursorPosition_.GetX());
-//             float textWidthBeforeCursor = ::MeasureText(textBeforeCursor.data());//.GetX();
+//             float textWidthBeforeCursor = ::MeasureText(textBeforeCursor.data(), paragraph.first.fontSize);//.GetX();
 
 //             switch (paragraph.second) {
 //                 case Alignment::kCenter: {

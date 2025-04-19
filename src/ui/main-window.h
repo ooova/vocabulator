@@ -10,10 +10,15 @@
 #include "raylib-cpp.hpp"
 #include "ui/widgets/card.h"
 #include "ui/widgets/text-input.h"
+#include "network/http/request.h"
 
 namespace vocabulary {
 class Vocabulary;
 }
+
+namespace network {
+class HttpClient;
+}  // namespace network
 
 namespace ui {
 
@@ -32,7 +37,7 @@ constexpr int kCardHeight{200};
 
 class MainWindow : public RWindow {
 public:
-    MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary);
+    MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::weak_ptr<network::HttpClient> http_client);
 
     void draw();
 
@@ -51,6 +56,7 @@ private:
         tools::Language::kSpecSymbols};
 
     std::weak_ptr<vocabulary::Vocabulary> vocabulary_;
+    std::weak_ptr<network::HttpClient> http_client_;
 
     // widgets::Button button_previous_word_;
     widgets::Button button_next_word_;
@@ -61,6 +67,28 @@ private:
     widgets::TextInput new_word_input_;
     widgets::TextInput new_word_translation_input_;
     widgets::TextInput new_word_example_input_;
+
+    inline static std::string const default_server_{"localhost"};
+    inline static std::string const default_port_{"1234"};
+    inline static std::string const default_target_{"/v1/chat/completions"};
+    inline static std::string const default_method_{"POST"};
+    inline static std::vector<std::pair<std::string, std::string>> const default_headers_{
+        {
+            {"Content-Type", "application/json"},
+        }
+    };
+
+    // methods
+
+    std::shared_ptr<network::Request> createRequest(
+        std::string const& request,
+        network::Request::Callback callback,
+        std::string const& server = default_server_,
+        std::string const& port = default_port_,
+        std::string const& target = default_target_,
+        std::string const& method = default_method_,
+        std::vector<std::pair<std::string, std::string>> const& headers =
+            default_headers_);
 };
 
 }  // namespace ui

@@ -40,22 +40,10 @@ public:
     void addWord(Word&& word);
     void addWord(std::string_view const word, Translation&& translation);
 
-    // importing and exporting of words
     void importFromFile(std::filesystem::path const& path,
                         char item_delim = kDefaultItemsDelimiter,
                         char field_delim = kDefaultFieldsDelimiter);
     void exportToFile(std::filesystem::path const& path);
-    // void addWordsFromFile(std::filesystem::path const& path);
-
-    // loading and saving of whole vocabulary
-    void loadFromFile(std::filesystem::path const& path,
-                      char item_delim = kDefaultItemsDelimiter,
-                      char field_delim = kDefaultFieldsDelimiter){
-                        (void)path;
-                        (void)item_delim;
-                        (void)field_delim;
-                      };
-    void saveToFile(std::filesystem::path const& path){ (void)path; };
 
     /**
      * @throw VocabularyError if there is no word to learn
@@ -69,6 +57,7 @@ private:
     size_t next_word_index_{0};
     std::vector<Word> words_;
     // std::weak_ptr<LearningStrategies::Strategy> learning_strategy_;
+    std::filesystem::path import_from_file_path_{};
 
     /**
      * @throw VocabularyError if word is not found

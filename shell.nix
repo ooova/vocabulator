@@ -12,6 +12,11 @@
       pkgs.xorg.libXinerama
       pkgs.xorg.libXrandr
 
+      # pthread
+      pkgs.xorg.libpthreadstubs
+
       pkgs.pkg-config
+
+      pkgs.openssl
     ];
 }
