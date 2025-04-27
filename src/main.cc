@@ -17,6 +17,9 @@
 #include "ui/tools/locale.h"
 #include "nlohmann/json.hpp"
 
+
+// #include "ui/widgets/TextInput.h"
+
 constexpr const auto kDefaultVocabularyPath{std::string_view{"../assets/vocabulary.md"}};
 
 using namespace std::literals;
@@ -36,17 +39,16 @@ int main(void)
         SetTargetFPS(40);
         //----------------------------------------------------------
 
+        // TextInput input(100, 200, 200, 40, 20);
+        // input.SetColors(WHITE, BLACK, DARKGRAY, BLACK);
+
         while (!window.ShouldClose()) {  // Detect window close button or ESC key
             auto time = GetTime();
             // Update
             //-----------------------------------------------------
 
-            // Update player-controlled-box (box02)
-            // boxB.x = GetMouseX() - boxB.width/2;
-            // boxB.y = GetMouseY() - boxB.height/2;
+            // input.Update();
 
-            // Pause Box A movement
-            // if (IsKeyPressed(KEY_SPACE)) pause = !pause;
             //-----------------------------------------------------
 
             // Draw
@@ -57,13 +59,8 @@ int main(void)
 
             window.update(time - prev_time);
             window.draw();
-            // textBox.Draw();
 
-            // buttonPreviousWord.Draw();
-            // buttonNextWord.Draw();
-
-            // DrawFPS(10, 10);
-
+            // input.Draw();
             EndDrawing();
             //-----------------------------------------------------
 
@@ -79,97 +76,3 @@ int main(void)
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// /*******************************************************************************************
-// *
-// *   raylib-cpp [core] example - Basic window (adapted for HTML5 platform)
-// *
-// *   This example is prepared to compile for PLATFORM_WEB, PLATFORM_DESKTOP and PLATFORM_RPI
-// *   As you will notice, code structure is slightly diferent to the other examples...
-// *   To compile it for PLATFORM_WEB just uncomment #define PLATFORM_WEB at beginning
-// *
-// *   This example has been created using raylib 1.3 (www.raylib.com)
-// *   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
-// *
-// *   Copyright (c) 2015 Ramon Santamaria (@raysan5)
-// *
-// ********************************************************************************************/
-
-// #include "raylib-cpp.hpp"
-
-// #if defined(PLATFORM_WEB)
-//     #include <emscripten/emscripten.h>
-// #endif
-
-// //----------------------------------------------------------------------------------
-// // Global Variables Definition
-// //----------------------------------------------------------------------------------
-// int screenWidth = 800;
-// int screenHeight = 450;
-
-// //----------------------------------------------------------------------------------
-// // Module Functions Declaration
-// //----------------------------------------------------------------------------------
-// void UpdateDrawFrame(void);     // Update and Draw one frame
-
-// //----------------------------------------------------------------------------------
-// // Main Enry Point
-// //----------------------------------------------------------------------------------
-// int main()
-// {
-//     // Initialization
-//     //--------------------------------------------------------------------------------------
-//     raylib::Window window(screenWidth, screenHeight, "raylib-cpp [core] example - basic window");
-
-// #if defined(PLATFORM_WEB)
-//     emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
-// #else
-//     SetTargetFPS(60);   // Set our game to run at 60 frames-per-second
-//     //--------------------------------------------------------------------------------------
-
-//     // Main game loop
-//     while (!window.ShouldClose())    // Detect window close button or ESC key
-//     {
-//         UpdateDrawFrame();
-//     }
-// #endif
-
-//     return 0;
-// }
-
-// //----------------------------------------------------------------------------------
-// // Module Functions Definition
-// //----------------------------------------------------------------------------------
-// void UpdateDrawFrame(void)
-// {
-//     // Update
-//     //----------------------------------------------------------------------------------
-//     // TODO: Update your variables here
-//     //----------------------------------------------------------------------------------
-
-//     // Draw
-//     //----------------------------------------------------------------------------------
-//     BeginDrawing();
-
-//         ClearBackground(RAYWHITE);
-
-//         raylib::DrawText("Congrats! You created your first raylib-cpp window!", 190, 200, 20, LIGHTGRAY);
-
-//     EndDrawing();
-//     //----------------------------------------------------------------------------------
-// }

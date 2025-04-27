@@ -28,29 +28,43 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::we
     : RWindow(kScreenWidth, kScreenHeight, "Vocabulator")
     , vocabulary_{vocabulary}
     , http_client_{http_client}
-    // , button_previous_word_{{kScreenMargin + (kScreenWidth - 2 * kScreenMargin) / 3 -
-    //                              kButtonWidth / 2,
-    //                          kScreenHeight - kScreenMargin - kButtonHeight},
-    //                         {kButtonWidth, kButtonHeight},
-    //                         Locale::translateInterface("previous"),
-    //                         [] { spdlog::info("\'previous\' button clicked"); },
-    //                         tools::createFont(font_file_path_,
-    //                         Locale::getAlphabet(char_set_))}
+    , button_add_word_to_batch_{
+                        {650 - kButtonWidth - kElementMargin, kScreenMargin},
+                        {kButtonWidth, kButtonHeight},
+                        Locale::translateInterface("add to batch"),
+                        [this] {
+                            if (auto v = vocabulary_.lock(); v) {
+                                if (!v->addUnknownWordToBatch()) {
+                                    spdlog::warn("can not add word to batch");
+                                    if (v->batchSize() >= vocabulary::Vocabulary::kMaxWordsToLearn) {
+                                        spdlog::warn("batch is full");
+                                    }
+                                }
+                            } else {
+                                spdlog::error("vocabulary is not available (destroyed)");
+                            }
+                        },
+                        tools::createFont(font_file_path_,
+                                          Locale::getAlphabet(char_set_))}
     , button_next_word_{
-        // {kScreenMargin + ((kScreenWidth - 2 * kScreenMargin) / 3) * 2 -
-        //                      kButtonWidth / 2,
-        //                  kScreenHeight - kScreenMargin - kButtonHeight},
                         {650, kScreenMargin},
                         {kButtonWidth, kButtonHeight},
                         Locale::translateInterface("next"),
                         [this] {
-                            if (auto v = vocabulary_.lock()) {
-                                try {
-                                    // if (auto word{} )
-                                    card_.setWord(v->nextWordToLearn());
-                                } catch (VocabularyError const& ex) {
-                                    spdlog::error(ex.what());
+                            if (auto v = vocabulary_.lock(); v) {
+                                if (auto word = v->wordToLearnFromBatch(); word) {
+                                    try {
+                                        card_.setWord(word->get());
+                                    } catch (VocabularyError const& ex) {
+                                        spdlog::error(ex.what());
+                                    }
                                 }
+                                else {
+                                    spdlog::warn("no words to learn");
+                                }
+                            }
+                            else {
+                                spdlog::error("vocabulary is not available (destroyed)");
                             }
                         },
                         tools::createFont(font_file_path_,
@@ -59,8 +73,8 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::we
                               {kButtonWidth, kButtonHeight},
                               Locale::translateInterface("load vocabulary"),
                               [this] {
-                                    if (auto v = vocabulary_.lock()) {
-                                        v->importFromFile/* load */(""/* "test.voc" */);
+                                    if (auto v = vocabulary_.lock(); v) {
+                                        v->importFromJsonFile("");
                                     } else {
                                         spdlog::critical(
                                             "vocabulary is not available (destroyed)");
@@ -72,8 +86,8 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::we
                               {kButtonWidth, kButtonHeight},
                               Locale::translateInterface("save vocabulary"),
                               [this] {
-                                    if (auto v = vocabulary_.lock()) {
-                                        v->exportToFile(""/* "test.voc" */);
+                                    if (auto v = vocabulary_.lock(); v) {
+                                        v->exportToJsonFile("");
                                     } else {
                                         spdlog::critical(
                                             "vocabulary is not available (destroyed)");
@@ -136,12 +150,11 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::we
     , card_{{kScreenMargin, kScreenMargin * 2 + kButtonWidth},
             {kScreenWidth - kScreenMargin * 2,
              kScreenHeight - kScreenMargin * 2 - kButtonHeight},
-            vocabulary_.lock()->nextWordToLearn(),
+            {},//vocabulary_.lock()->nextRandomWordToLearn(),
             tools::createFont(font_file_path_, Locale::getAlphabet(char_set_))}
     , new_word_input_{
         {kScreenMargin + kElementMargin, kScreenHeight - kScreenMargin - (kElementMargin + kButtonHeight) * 3},
         {kButtonWidth, kButtonHeight},
-        // fix problem with cyrillic symbols
         tools::createFont(font_file_path_, Locale::getAlphabet(char_set_))/* {} */}
     , new_word_translation_input_{
         {new_word_input_.GetX(), new_word_input_.GetY() + new_word_input_.GetHeight() + kElementMargin},
@@ -152,21 +165,23 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::we
         {new_word_translation_input_.GetWidth(), new_word_translation_input_.GetHeight()},
         tools::createFont(font_file_path_, Locale::getAlphabet(char_set_))}
 {
-    // print screen parameters
     spdlog::info("Screen width: {}", kScreenWidth);
     spdlog::info("Screen height: {}", kScreenHeight);
     spdlog::info("Screen margin: {}", kScreenMargin);
     spdlog::info("Element margin: {}", kElementMargin);
     spdlog::info("Button height: {}", kButtonHeight);
     spdlog::info("Card height: {}", kCardHeight);
+    spdlog::info("--------------------------------------------------");
 
     spdlog::info("new_word_input_: x({}) y({}) w({}) h({})", new_word_input_.GetX(), new_word_input_.GetY(), new_word_input_.GetWidth(), new_word_input_.GetHeight());
     spdlog::info("new_word_translation_input_: x({}) y({}) w({}) h({})", new_word_translation_input_.GetX(), new_word_translation_input_.GetY(), new_word_translation_input_.GetWidth(), new_word_translation_input_.GetHeight());
     spdlog::info("new_word_example_input_: x({}) y({}) w({}) h({})", new_word_example_input_.GetX(), new_word_example_input_.GetY(), new_word_example_input_.GetWidth(), new_word_example_input_.GetHeight());
+    spdlog::info("==================================================");
 }
 
 void MainWindow::draw()
 {
+    button_add_word_to_batch_.draw();
     // button_previous_word_.draw();
     button_next_word_.draw();
     button_load_vocabulary_.draw();
@@ -182,11 +197,12 @@ void MainWindow::draw()
 }
 
 void MainWindow::update(float dt) {
+    button_add_word_to_batch_.update(dt);
     button_next_word_.update(dt);
     button_load_vocabulary_.update(dt);
     button_save_vocabulary_.update(dt);
     button_vocabulary_add_word_.update(dt);
-    // card_.update(dt);
+
     new_word_input_.update(dt);
     new_word_translation_input_.update(dt);
     new_word_example_input_.update(dt);

@@ -51,12 +51,12 @@ protected:
 TEST_F(VocabularyFixture, construct)
 {
     auto obj{Vocabulary{}};
-    EXPECT_THROW(obj.nextWordToLearn(), VocabularyError);
+    EXPECT_THROW(obj.nextRandomWordToLearn(), VocabularyError);
     EXPECT_EQ(obj.getStatistic().words_count, 0);
 
     auto objImportFromFile{Vocabulary{kVocabularyPath}};
     ASSERT_EQ(objImportFromFile.getStatistic().words_count, 1);
-    auto& wordToLearn{objImportFromFile.nextWordToLearn()};
+    auto& wordToLearn{objImportFromFile.nextRandomWordToLearn()};
     EXPECT_EQ(wordToLearn.word(), kTestWord);
     ASSERT_EQ(wordToLearn.translation().variants().size(), 2);
     EXPECT_EQ(wordToLearn.translation().variants().at(0), kTestTranslation);
@@ -70,7 +70,7 @@ TEST_F(VocabularyFixture, addWord)
     auto obj{Vocabulary{}};
     obj.addWord(Word{kTestWord, {{kTestTranslation}}});
     ASSERT_EQ(obj.getStatistic().words_count, 1);
-    auto& wordToLearn{obj.nextWordToLearn()};
+    auto& wordToLearn{obj.nextRandomWordToLearn()};
     EXPECT_EQ(wordToLearn.word(), kTestWord);
     EXPECT_EQ(wordToLearn.translation().variants().at(0), kTestTranslation);
     EXPECT_TRUE(wordToLearn.translation().examples().empty());
@@ -78,7 +78,7 @@ TEST_F(VocabularyFixture, addWord)
     auto obj1{Vocabulary{}};
     obj1.addWord(kTestWord, {{kTestTranslation}, {kTestExample}});
     ASSERT_EQ(obj1.getStatistic().words_count, 1);
-    auto& wordToLearn1{obj1.nextWordToLearn()};
+    auto& wordToLearn1{obj1.nextRandomWordToLearn()};
     EXPECT_EQ(wordToLearn1.word(), kTestWord);
     EXPECT_EQ(wordToLearn1.translation().variants().at(0), kTestTranslation);
     EXPECT_EQ(wordToLearn1.translation().examples().at(0), kTestExample);

@@ -7,12 +7,16 @@
 #include <vector>
 #include <cstdint>
 
+#include "nlohmann/json.hpp"
+
 namespace vocabulary {
 
 class Translation {
 public:
     static char const kDefaultItemsDelimiter{';'};
     static char const kDefaultFieldsDelimiter{'|'};
+
+    Translation() = default;  // needed for json deserialization
 
     /**
      * @param str Expected format | variant1; variant1; | example1; example2 |
@@ -53,6 +57,9 @@ private:
     inline static char item_delimiter_{kDefaultItemsDelimiter};
     inline static char field_delimiter_{kDefaultFieldsDelimiter};
 };
+
+void to_json(nlohmann::json& j, Translation const& t);
+void from_json(nlohmann::json const& j, Translation& t);
 
 }  // namespace vocabulary
 

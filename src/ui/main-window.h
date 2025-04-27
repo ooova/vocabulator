@@ -59,6 +59,7 @@ private:
     std::weak_ptr<network::HttpClient> http_client_;
 
     // widgets::Button button_previous_word_;
+    widgets::Button button_add_word_to_batch_;
     widgets::Button button_next_word_;
     widgets::Button button_load_vocabulary_;
     widgets::Button button_save_vocabulary_;

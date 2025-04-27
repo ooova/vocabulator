@@ -128,4 +128,24 @@ void Translation::addExample(std::string_view example)
     examples_.emplace_back(example);
 }
 
+// json serialization and deserialization
+
+void to_json(nlohmann::json& j, Translation const& t)
+{
+    j = nlohmann::json{
+        {"variants", t.variants()},
+        {"examples", t.examples()},
+    };
+}
+
+void from_json(nlohmann::json const& j, Translation& t)
+{
+    std::vector<std::string> variants = j.at("variants");
+    std::vector<std::string> examples{};
+    if (j.contains("examples")) {
+        examples = j.at("examples");
+    }
+    t = Translation(variants, examples);
+}
+
 }  // namespace vocabulary

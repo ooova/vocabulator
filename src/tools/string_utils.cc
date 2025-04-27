@@ -30,7 +30,7 @@ void removePrefixSpacesAndTabs(std::string& str)
 void removeSuffixSpacesAndTabs(std::string& str)
 {
     auto index{str.size()};
-    while ((0 < index) && ((str.at(index - 1) == ' ') || (str.at(index - 1) == '\t'))) {
+    while ((0 < index) && ((str.at(index - 1) == ' ') || (str.at(index - 1) == '\t') || (str.at(index - 1) == '\n'))) {
         --index;
     }
     if (index < str.size()) {

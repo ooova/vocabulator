@@ -35,8 +35,11 @@ Word Word::parse(std::string_view str, char item_delim, char field_delim)
     return {word, Translation::parse(string, item_delim, field_delim)};
 }
 
-Word::Word(std::string_view word, Translation&& translation)
-    : word_{word}
+Word::Word(std::string_view word, Translation&& translation, int impressions_number,
+           int know_number)
+    : dont_know_pressed_number_{impressions_number}
+    , know_pressed_number_{know_number}
+    , word_{word}
     , translation_{std::move(translation)}
 {
     if (word_.empty()) {
@@ -71,14 +74,50 @@ std::string Word::toString() const
            field_delimiter_;
 }
 
-uint8_t Word::retentionPercentage() const { return {}; }
+uint8_t Word::retentionRate() const {
+    if (know_pressed_number_ + dont_know_pressed_number_ == 0) {
+        return 0;
+    }
 
-std::vector<uint8_t> Word::toBin() const { return {}; }
+    return static_cast<uint8_t>(100.0f * know_pressed_number_ / (know_pressed_number_ + dont_know_pressed_number_));
+}
 
 void Word::setDelimiters(char item_delim, char field_delim)
 {
     item_delimiter_ = item_delim;
     field_delimiter_ = field_delim;
+}
+
+bool Word::operator<(Word const& other)
+{
+    return retentionRate() < other.retentionRate();
+}
+
+bool Word::operator==(Word const& other)
+{
+    return word_ == other.word_;// && translation_ == other.translation_;
+}
+
+// json serialization and deserialization
+
+void to_json(nlohmann::json& j, Word const& w)
+{
+    j = nlohmann::json{{"word", w.word()}, {"translation", w.translation()},
+                       {"dont_know", w.dontKnowNumber()}, {"know", w.knowNumber()}};
+}
+
+void from_json(nlohmann::json const& j, Word& w)
+{
+    std::string word = j.at("word");
+    Translation translation = j.at("translation");
+    int dont_know_number = j.at("dont_know");
+    int know_number = j.at("know");
+    w = Word(word, std::move(translation), dont_know_number, know_number);
+}
+
+bool operator<(std::reference_wrapper<Word> lhs, std::reference_wrapper<Word> rhs)
+{
+    return lhs.get() < rhs.get();
 }
 
 }  // namespace vocabulary
