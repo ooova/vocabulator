@@ -165,12 +165,12 @@ private:
             try {
                 spdlog::trace("------------------------------- readResponseBody -------------------------------");
 
-                auto read_until_delim = [this, request](std::string const& delim = "\r\n") -> int {
+                auto read_until_delim = [this, request](std::string const& delim = "\r\n") -> size_t {
                     spdlog::trace("------------------------------- read_until_delim -------------------------------");
                     int amount_of_bytes_in_chunk{0};
 
                     asio::error_code ec;
-                    auto bytes_read = asio::read_until(socket_, request->response_buffer, delim, ec);
+                    asio::read_until(socket_, request->response_buffer, delim, ec);
                     if (ec) {
                         spdlog::error("Read until char failed. Error: {}", ec.message());
                         return amount_of_bytes_in_chunk;
@@ -195,7 +195,7 @@ private:
                     return amount_of_bytes_in_chunk;
                 };
 
-                auto read_n_bytes = [this, request](int n, int& read_bytes_left_out) -> std::string {
+                auto read_n_bytes = [this, request](size_t n, size_t& read_bytes_left_out) -> std::string {
                     spdlog::trace("------------------------------- read_n_bytes -------------------------------");
                     asio::error_code ec;
                     std::string buffer;

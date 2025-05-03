@@ -13,12 +13,6 @@
 #include "nlohmann/json.hpp"
 #include "network/http/client/nttp_client.h"
 
-namespace {
-
-auto word{vocabulary::Word{"слово", {{"word"}, {"log word"}}}};
-
-}  // namespace
-
 namespace ui {
 
 using namespace std::literals;
@@ -100,12 +94,12 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::we
                                   Locale::translateInterface("add word"),
                                   [this] {
                                       if (auto voc = vocabulary_.lock(); voc) {
-                                            if (new_word_input_.text().empty()) {
+                                            if (new_word_input_.getText().empty()) {
                                                 spdlog::error("Word is empty");
                                                 return;
                                             }
                                             std::string translation{};
-                                            if (new_word_translation_input_.text().empty()) {
+                                            if (new_word_translation_input_.getText().empty()) {
                                                 if (auto client = http_client_.lock(); client) {
                                                     auto response_promise{std::promise<void>()};
                                                     auto response_received{response_promise.get_future()};
@@ -122,7 +116,7 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::we
                                                             }
                                                             response_promise.set_value();
                                                         };
-                                                    auto request = createRequest(new_word_input_.text(),
+                                                    auto request = createRequest(new_word_input_.getText(),
                                                                             std::move(http_response_handler));
                                                     client->sendRequest(request);
                                                     response_received.wait();
@@ -133,10 +127,10 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::we
                                                 }
                                             }
                                             else {
-                                                translation = new_word_translation_input_.text();
+                                                translation = new_word_translation_input_.getText();
                                             }
-                                        voc->addWord(new_word_input_.text(), vocabulary::Translation::parse(translation));
-                                        spdlog::info("Word added: {} - {}", new_word_input_.text(), translation);
+                                        voc->addWord(new_word_input_.getText(), vocabulary::Translation::parse(translation));
+                                        spdlog::info("Word added: {} - {}", new_word_input_.getText(), translation);
                                         new_word_input_.setText("");
                                         new_word_translation_input_.setText("");
                                         new_word_example_input_.setText("");
@@ -207,10 +201,6 @@ void MainWindow::update(float dt) {
     new_word_translation_input_.update(dt);
     new_word_example_input_.update(dt);
 }
-
-// widgets::TextBox& MainWindow::textBox() {
-//     return  text_box_;
-// }
 
 // private methods -------------------------------------------
 

@@ -1,6 +1,6 @@
 project('vocabulator', 'cpp')
 
-cpp_options = ['-std=c++23']
+cpp_options = ['-std=c++23', '-O']
 
 inc_dirs = include_directories(
         './',

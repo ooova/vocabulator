@@ -1,317 +1,131 @@
 #include "text-input.h"
 
-#include "spdlog/spdlog.h"
-
-#include <iterator>
-#include <codecvt>
-
 namespace ui::widgets {
 
 TextInput::TextInput(RVector2 position, RVector2 size, RFont&& font,
-        RColor textColor, RColor backgroundColor)
-    : TextBox(position, size, std::move(font), textColor, backgroundColor)
-    , cursorPosition_{0}
-    , textColor_{textColor}
+                     RColor text_color, RColor background_color, RColor cursor_color)
+    : RRectangle(position.GetX(), position.GetY(), size.GetX(), size.GetY())
+    , text_offset_x_(position.GetX())
+    , font_(std::move(font))
+    , text_color_(text_color)
+    , background_color_(background_color)
+    , cursor_color_(cursor_color)
 {
-    // TextBox::setText("Hello world\nHello from Mars\nI'm here");
-    // spdlog::trace("lagger \'0\': {}", text_.at(0).first.font.glyphs[0].value);
 }
 
-void TextInput::update(float dt)
-{
-    if (RMouse::IsButtonPressed(MOUSE_BUTTON_LEFT)) {
-        if (CheckCollision(RMouse::GetPosition())) {
-            in_focus_ = true;
-            TextBox::setTextColor(textColor_);
-        }
-        else {
-            TextBox::setTextColor(RColor::Gray());
-            in_focus_ = false;
-        }
-    }
-
-    if (CheckCollision(RMouse::GetPosition())) {
-        RMouse::SetCursor(MOUSE_CURSOR_IBEAM);
-    }
-    else {
-        RMouse::SetCursor(MOUSE_CURSOR_DEFAULT);
+void TextInput::update(float dt) {
+    if (::IsMouseButtonPressed(::MOUSE_BUTTON_LEFT)) {
+        in_focus_ = CheckCollision(::GetMousePosition());
     }
 
     if (in_focus_) {
-        handleInput();
+
+        int codepoint;
+        while ((codepoint = GetCharPressed()) != 0) {
+            std::string char_str = codepoint_to_utf8(codepoint);
+            text_.insert(cursor_pos_, char_str);
+            cursor_pos_ += char_str.size();
+        }
+
+        const auto key_pressed = GetKeyPressed();
+        switch (key_pressed) {
+            case KEY_BACKSPACE:
+                if (cursor_pos_ > 0) {
+                    size_t prev_pos = prev_char_pos(cursor_pos_);
+                    text_.erase(prev_pos, cursor_pos_ - prev_pos);
+                    cursor_pos_ = prev_pos;
+                }
+                break;
+            case KEY_DELETE:
+                if (cursor_pos_ < text_.size()) {
+                    size_t next_pos = next_char_pos(cursor_pos_);
+                    text_.erase(cursor_pos_, next_pos - cursor_pos_);
+                }
+                break;
+            case KEY_LEFT:
+                if (cursor_pos_ > 0) {
+                    cursor_pos_ = prev_char_pos(cursor_pos_);
+                }
+                break;
+            case KEY_RIGHT:
+                if (cursor_pos_ < text_.size()) {
+                    cursor_pos_ = next_char_pos(cursor_pos_);
+                }
+                break;
+            case KEY_HOME:
+                cursor_pos_ = 0;
+                break;
+            case KEY_END:
+                cursor_pos_ = text_.size();
+                break;
+        }
+    }
+
+    auto text_size = font_.MeasureText(text_.substr(0, cursor_pos_).c_str(), font_size_, spacing_);
+
+    auto const spacing = spacing_ * 2;
+    text_offset_x_ = GetX() + spacing;
+    if (GetWidth() <= text_size.x) {
+        text_offset_x_ = GetWidth() - text_size.x - spacing + GetX();
     }
 
     cursor_timer_ += dt;
-    if (cursor_timer_ >= cursor_blink_interval_) {
-        cursor_timer_ = 0.0f;
+    if (cursor_timer_ >= 0.5f) {
         cursor_visible_ = !cursor_visible_;
+        cursor_timer_ = 0.0f;
     }
 }
 
-void TextInput::handleInput()
-{
-    const auto key_code = RKeyboard::GetKeyPressed();
-    const auto char_code = RKeyboard::GetCharPressed();
-    if (key_code) {
-        spdlog::trace("key code: \'{}\', char code: \'{}\'", key_code, char_code);
-        switch (key_code) {
-            case static_cast<int>(KeyCodes::kUp):
-                moveCursorUp();
-                spdlog::trace("cursor position \'{}\': ", cursorPosition_.ToString());
-                break;
-            case static_cast<int>(KeyCodes::kRight):
-                moveCursorRight();
-                spdlog::trace("cursor position \'{}\': ", cursorPosition_.ToString());
-                break;
-            case static_cast<int>(KeyCodes::kDown):
-                moveCursorDown();
-                spdlog::trace("cursor position \'{}\': ", cursorPosition_.ToString());
-                break;
-            case static_cast<int>(KeyCodes::kLeft):
-                moveCursorLeft();
-                spdlog::trace("cursor position \'{}\': ", cursorPosition_.ToString());
-                break;
-            case static_cast<int>(KeyCodes::kBackspace):
-                deleteCharacter(true);
-                spdlog::trace("cursor position \'{}\': ", cursorPosition_.ToString());
-                break;
-            case static_cast<int>(KeyCodes::kDel):
-                deleteCharacter(false);
-                spdlog::trace("cursor position \'{}\': ", cursorPosition_.ToString());
-                break;
-            case static_cast<int>(KeyCodes::kEnter):
-                insertCharacter('\n');
-                break;
-            default:
-                if (char_code) {
-
-                    // auto ch = static_cast<char>(char_code);
-                    spdlog::trace("char: {}", char_code);
-
-
-                    insertCharacter(char_code);
-                }
-                break;
-        }
-    }
-}
-
-// void TextInput::draw() {
-//     TextBox::draw();
-
-//     // grok
-//     // Отрисовываем курсор, если он виден
-//     if (cursor_visible_) {
-//         try {
-//             RVector2 cursorPos = RRectangle::GetPosition();
-//             const auto& paragraph = text_.at(cursorPosition_.GetY());
-//             const auto& text = paragraph.first;
-//             float fontSize = text.GetFontSize();
-
-//             // Вычисляем Y-позицию (смещение по строкам)
-//             cursorPos.SetY(cursorPos.GetY() + cursorPosition_.GetY() * fontSize);
-
-//             // Вычисляем X-позицию в зависимости от выравнивания
-//             std::string_view textBeforeCursor = std::string_view(text.text).substr(0, cursorPosition_.GetX());
-//             float textWidthBeforeCursor = ::MeasureText(textBeforeCursor.data(), paragraph.first.fontSize);//.GetX();
-
-//             switch (paragraph.second) {
-//                 case Alignment::kCenter: {
-//                     float paragraphWidth = text.MeasureEx().GetX();
-//                     cursorPos.SetX(RRectangle::GetPosition().GetX() +
-//                                    (RRectangle::GetSize().GetX() - paragraphWidth) / 2 +
-//                                    textWidthBeforeCursor);
-//                 } break;
-//                 case Alignment::kRight: {
-//                     float paragraphWidth = text.MeasureEx().GetX();
-//                     cursorPos.SetX(RRectangle::GetPosition().GetX() +
-//                                    RRectangle::GetSize().GetX() - paragraphWidth +
-//                                    textWidthBeforeCursor);
-//                 } break;
-//                 default: // kLeft
-//                     cursorPos.SetX(cursorPos.GetX() + textWidthBeforeCursor);
-//                     break;
-//             }
-
-//             // Параметры курсора
-//             float cursorWidth = 2.0f; // Ширина курсора
-//             float cursorHeight = fontSize; // Высота курсора
-//             RColor cursorColor = RColor::Black(); // Цвет курсора
-
-//             // Отрисовка вертикальной черты
-//             DrawRectangleV(cursorPos, {cursorWidth, cursorHeight}, cursorColor);
-//         } catch (const std::exception& ex) {
-//             spdlog::error("Ошибка при отрисовке курсора: {}", ex.what());
-//         }
-//     }
-// }
-
-// grok: draw with cursor as _ symbol
 void TextInput::draw() {
-    if (cursor_visible_ && in_focus_) {
-        try {
-            auto& text = text_.at(cursorPosition_.GetY()).first.text;
-            if (cursorPosition_.GetX() < text.size()) {
-                // Сохраняем оригинальный символ
-                char originalChar = text[cursorPosition_.GetX()];
-                // Заменяем символ на '_'
-                text[cursorPosition_.GetX()] = '_';
-                TextBox::draw(); // Отрисовываем текст с курсором
-                // Восстанавливаем оригинальный символ
-                text[cursorPosition_.GetX()] = originalChar;
-            } else {
-                // Если курсор в конце строки, добавляем '_'
-                text += '_';
-                TextBox::draw();
-                text.pop_back(); // Удаляем временный '_'
-            }
-        } catch (const std::exception& ex) {
-            spdlog::error("Ошибка при отрисовке курсора: {}", ex.what());
-        }
-    } else {
-        TextBox::draw(); // Отрисовываем без курсора
+    const auto text_top_margin = spacing_ * 3;
+    Draw(background_color_);
+
+    ::BeginScissorMode(GetX(), GetY(), GetWidth(), GetHeight());
+    font_.DrawText(text_.c_str(), {text_offset_x_, GetY() + text_top_margin}, font_size_, spacing_, text_color_);
+    ::EndScissorMode();
+
+    if (in_focus_ && cursor_visible_) {
+        auto text_size = font_.MeasureText(text_.substr(0, cursor_pos_).c_str(), font_size_, spacing_);
+        auto cursor_screen_x = text_offset_x_ + text_size.x;
+        ::DrawLine(cursor_screen_x, GetY() + text_top_margin, cursor_screen_x, GetY() + font_size_ + text_top_margin, cursor_color_);
     }
 }
 
-std::string TextInput::text(bool with_new_lines) const {
+size_t TextInput::prev_char_pos(size_t pos) const {
+    if (pos == 0) {
+        return 0;
+    }
+    pos--;
+    while (pos > 0 && (text_[pos] & 0xC0) == 0x80) {
+        pos--;
+    }
+    return pos;
+}
+
+size_t TextInput::next_char_pos(size_t pos) const {
+    if (pos >= text_.size()) {
+        return text_.size();
+    }
+    pos++;
+    while (pos < text_.size() && (text_[pos] & 0xC0) == 0x80) {
+        pos++;
+    }
+    return pos;
+}
+
+std::string TextInput::codepoint_to_utf8(int codepoint) const {
     std::string result;
-    for (const auto& line : text_) {
-        result += line.first.GetText() + (with_new_lines ? "\n" : "");
+    if (codepoint <= 0x7F) {
+        result += static_cast<char>(codepoint);
+    } else if (codepoint <= 0x7FF) {
+        result += static_cast<char>(0xC0 | (codepoint >> 6));
+        result += static_cast<char>(0x80 | (codepoint & 0x3F));
+    } else if (codepoint <= 0xFFFF) {
+        result += static_cast<char>(0xE0 | (codepoint >> 12));
+        result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        result += static_cast<char>(0x80 | (codepoint & 0x3F));
     }
     return result;
-}
-
-void TextInput::moveCursorLeft()
-{
-    cursorPosition_ -= {1, 0};
-    normalizeCursor();
-}
-
-void TextInput::moveCursorRight()
-{
-    cursorPosition_ += {1, 0};
-    normalizeCursor();
-}
-
-void TextInput::moveCursorDown()
-{
-    cursorPosition_ += {0, 1};
-    normalizeCursor();
-}
-
-void TextInput::moveCursorUp()
-{
-    cursorPosition_ -= {0, 1};
-    normalizeCursor();
-}
-
-// TODO: if X pos. of cursor is out of range - get it back to the range
-//      ? what if text in the paragraph is empty?
-void TextInput::normalizeCursor() {
-    // Ensure cursor is not above the first line
-    if (cursorPosition_.GetY() < 0) {
-        cursorPosition_.SetY(0);
-    }
-
-    // Ensure cursor is not below the last line
-    if (text_.empty()) {
-        cursorPosition_.SetY(0);
-    }
-    else if (text_.size() <= cursorPosition_.GetY()) {
-        cursorPosition_.SetY(text_.size() - 1);
-    }
-
-    // Ensure cursor is not to the left of the first character in the line
-    if (cursorPosition_.GetX() < 0) {
-        cursorPosition_.SetX(0);
-    }
-
-    const auto& current_paragraph = text_.at(cursorPosition_.GetY()).first.text;
-    // Ensure cursor is not to the right of the last character in the line
-    if (current_paragraph.empty()) {
-        cursorPosition_.SetX(0);
-    }
-    else {
-        auto const paragraph_length = current_paragraph.size();
-        if (paragraph_length <= cursorPosition_.GetX()) {
-            cursorPosition_.SetX(paragraph_length - 1);
-        }
-    }
-}
-
-void TextInput::insertCharacter(char32_t ch) {
-    try {
-        // convert utf8 char to sts::string
-        std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-        std::string utf8_string = converter.to_bytes(ch);
-
-        if (text_.empty()) {
-            TextBox::setText(std::string{utf8_string});
-        }
-        else {
-            std::string raw_text{};
-            for (auto y = 0UL; y < text_.size(); ++y) {
-                auto const& paragraph{text_.at(y).first.GetText()};
-                if (y == cursorPosition_.GetY()) {
-                    auto const chars_count{cursorPosition_.GetX() + 1};
-                    raw_text += paragraph.substr(0, chars_count)
-                                + utf8_string
-                                + ((paragraph.size() < chars_count) ? "" : paragraph.substr(chars_count));
-                } else {
-                    raw_text += paragraph;
-                }
-                if (y < text_.size() - 1) {
-                    raw_text += '\n';
-                }
-            }
-            TextBox::setText(raw_text);
-            if (utf8_string == "\n") {
-                moveCursorDown();
-            }
-        }
-        moveCursorRight();
-    } catch (const std::out_of_range& e) {
-        spdlog::error("Error: Out of range exception occurred while inserting character.");
-    } catch (const std::exception& e) {
-        spdlog::error("An unexpected error occurred: {}", e.what());
-    }
-}
-
-void TextInput::deleteCharacter(bool backspace)
-{
-    try {
-        auto& text = text_.at(cursorPosition_.GetY()).first.text;
-        const auto& index = cursorPosition_.GetX();
-        if (backspace) {
-            if (index > 0) {
-                text.erase(index - 1, 1);
-            }
-            moveCursorLeft();
-        }
-        else {
-            if (index < text.size()) {
-                text.erase(index, 1);
-            }
-        }
-        normalizeCursor();
-        if (text.empty()) {
-            deleteParagraph(backspace);
-        }
-    } catch (std::exception const& ex) {
-        spdlog::error("can not remove character from position \'{}\': ",
-                      cursorPosition_.ToString(), ex.what());
-    }
-}
-
-void TextInput::deleteParagraph(bool backspace) {
-    if (1 < text_.size()) {
-        text_.erase(std::next(text_.begin(), static_cast<int>(cursorPosition_.GetY())));
-        if (backspace) {
-            moveCursorUp();
-        } else {
-            normalizeCursor();
-        }
-    }
 }
 
 }  // namespace ui::widgets

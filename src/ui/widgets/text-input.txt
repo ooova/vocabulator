@@ -19,19 +19,15 @@ public:
     std::string getText() const { return text_; }
     void setText(const std::string& text) { text_ = text; cursor_pos_ = text.size(); }
 
-    void setIfFocus() { in_focus_ = true; }
-    [[nodiscard]]bool isInFocus() const { return in_focus_; }
-
 private:
-    bool in_focus_{false};
-    std::string text_{};
+    std::string text_;
     size_t cursor_pos_ = 0;
+    float text_offset_x_;
     bool cursor_visible_ = true;
     float cursor_timer_ = 0.0f;
+    RFont font_;
     float font_size_ = 16.0f;
     float spacing_ = 1.0f;
-    float text_offset_x_;
-    RFont font_;
     RColor text_color_;
     RColor background_color_;
     RColor cursor_color_;
