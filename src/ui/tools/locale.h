@@ -32,14 +32,14 @@ public:
     }
 
     /**
-     * throw std::out_of_range if language is not found (or not supported)
+     * throw GlobalError if language is not found (or not supported)
      */
-    static std::string getAlphabet(std::span<Language> const langs) {
+    static std::string getAlphabet(std::span<Language const> const langs) {
         std::string alphabet{};
 
         for (auto const lang : langs) {
             alphabet += alphabets_.at(lang);
-            spdlog::trace("{}: {}", __FUNCTION__, alphabets_.at(lang));
+            // spdlog::trace("{}: {}", __FUNCTION__, alphabets_.at(lang));
         }
 
         return alphabet;

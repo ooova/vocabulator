@@ -5,11 +5,11 @@ namespace ui::widgets {
 TextInput::TextInput(RVector2 position, RVector2 size, RFont&& font,
                      RColor text_color, RColor background_color, RColor cursor_color)
     : RRectangle(position.GetX(), position.GetY(), size.GetX(), size.GetY())
-    , text_offset_x_(position.GetX())
-    , font_(std::move(font))
-    , text_color_(text_color)
-    , background_color_(background_color)
-    , cursor_color_(cursor_color)
+    , text_offset_x_{position.GetX()}
+    , font_{std::move(font)}
+    , text_color_{text_color}
+    , background_color_{background_color}
+    , cursor_color_{cursor_color}
 {
 }
 
