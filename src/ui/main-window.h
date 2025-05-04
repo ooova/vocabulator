@@ -1,16 +1,18 @@
 #ifndef UI_MAIN_WINDOW_H
 #define UI_MAIN_WINDOW_H
 
+#include "network/http/request.h"
+#include "ui/tools/font-manager.h"
+#include "ui/widgets/button.h"
+#include "ui/widgets/card.h"
+#include "ui/widgets/text-input.h"
+
+#include "raylib-cpp.hpp"
+
 #include <array>
 #include <memory>
 #include <string>
-
-#include "./tools/locale.h"
-#include "./widgets/button.h"
-#include "raylib-cpp.hpp"
-#include "ui/widgets/card.h"
-#include "ui/widgets/text-input.h"
-#include "network/http/request.h"
+#include <vector>
 
 namespace vocabulary {
 class Vocabulary;
@@ -18,47 +20,60 @@ class Vocabulary;
 
 namespace network {
 class HttpClient;
-}  // namespace network
+}
 
 namespace ui {
 
-constexpr int kBackgroundColor{0x181818};
-
-constexpr int kScreenWidth{800};
-constexpr int kScreenHeight{450};
-constexpr int kScreenMargin{10};
-
-constexpr int kButtonWidth{100};
-constexpr int kButtonHeight{30};
-
-constexpr int kElementMargin{5};
-
-constexpr int kCardHeight{200};
+struct Config {
+    static constexpr int kScreenWidth{800};
+    static constexpr int kScreenHeight{450};
+    static constexpr int kScreenMargin{10};
+    static constexpr int kButtonWidth{100};
+    static constexpr int kButtonHeight{30};
+    static constexpr int kElementMargin{5};
+    static constexpr int kCardHeight{200};
+    static inline const RColor kBackgroundColor{0x181818};
+    static inline const std::string kFontPath{"../assets/fonts/Ubuntu-R.ttf"};
+    static inline const std::string kDefaultServer{"localhost"};
+    static inline const std::string kDefaultPort{"1234"};
+    static inline const std::string kDefaultTarget{"/v1/chat/completions"};
+    static inline const std::string kDefaultMethod{"POST"};
+    static inline const std::vector<std::pair<std::string, std::string>> kDefaultHeaders{
+        {{"Content-Type", "application/json"}}};
+};
 
 class MainWindow : public RWindow {
 public:
-    MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary, std::weak_ptr<network::HttpClient> http_client);
+    MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary,
+               std::weak_ptr<network::HttpClient> http_client,
+               const Config& config = Config(),
+               std::shared_ptr<ui::tools::FontManager> font_manager = nullptr);
 
     void draw();
-
     void update(float dt);
 
 private:
-    // const RVector2 kAddNewWordBoxPosition{
-    //     kScreenMargin, kScreenMargin + kElementMargin + kButtonHeighth + kElementMargin
-    //     +
-    //                        kCardHeight + kElementMargin};
-    // const RVector2 kAddNewWordBoxSize{kScreenWidth + 2 * kScreenMargin, kCardHeight};
+    struct Layout {
+        RVector2 button_load_vocabulary_pos;
+        RVector2 button_save_vocabulary_pos;
+        RVector2 button_vocabulary_add_word_pos;
+        RVector2 button_add_word_to_batch_pos;
+        RVector2 button_next_word_pos;
+        RVector2 card_pos;
+        RVector2 new_word_input_pos;
+        RVector2 new_word_translation_input_pos;
+        RVector2 new_word_example_input_pos;
+        RVector2 card_size;
+        RVector2 button_size;
+        RVector2 input_size;
+    };
 
-    const std::string font_file_path_{"../assets/fonts/Ubuntu-R.ttf"};
-    std::array<tools::Language, 4> char_set_{
-        tools::Language::kRU, tools::Language::kEN, tools::Language::kMathSymbols,
-        tools::Language::kSpecSymbols};
-
+    const Config config_;
+    std::shared_ptr<ui::tools::FontManager> font_manager_;
     std::weak_ptr<vocabulary::Vocabulary> vocabulary_;
     std::weak_ptr<network::HttpClient> http_client_;
+    Layout layout_;
 
-    // widgets::Button button_previous_word_;
     widgets::Button button_add_word_to_batch_;
     widgets::Button button_next_word_;
     widgets::Button button_load_vocabulary_;
@@ -68,28 +83,22 @@ private:
     widgets::TextInput new_word_input_;
     widgets::TextInput new_word_translation_input_;
     widgets::TextInput new_word_example_input_;
+    std::string error_message_;
 
-    inline static std::string const default_server_{"localhost"};
-    inline static std::string const default_port_{"1234"};
-    inline static std::string const default_target_{"/v1/chat/completions"};
-    inline static std::string const default_method_{"POST"};
-    inline static std::vector<std::pair<std::string, std::string>> const default_headers_{
-        {
-            {"Content-Type", "application/json"},
-        }
-    };
-
-    // methods
-
+    void initWidgets();
+    Layout calculateLayout() const;
     std::shared_ptr<network::Request> createRequest(
-        std::string const& request,
-        network::Request::Callback callback,
-        std::string const& server = default_server_,
-        std::string const& port = default_port_,
-        std::string const& target = default_target_,
-        std::string const& method = default_method_,
-        std::vector<std::pair<std::string, std::string>> const& headers =
-            default_headers_);
+        const std::string& request,
+        network::Request::Callback callback) const;
+    void showError(const std::string& message);
+
+    // Button callback methods
+    void onAddWordToBatch();
+    void onNextWord();
+    void onLoadVocabulary();
+    void onSaveVocabulary();
+    void onAddWord();
+    void handleTranslationRequest(const std::string& word);
 };
 
 }  // namespace ui
