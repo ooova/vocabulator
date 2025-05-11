@@ -111,12 +111,17 @@ void Vocabulary::importFromJsonFile(std::filesystem::path const& path)
         throw VocabularyError(msg);
     }
 
-    auto j{nlohmann::json::parse(inputFile)};
+    try {
+        auto j = nlohmann::json::parse(inputFile);
 
-    words_ = j.at("vocabulary");
-    batch_.words_to_learn = j.at("batch_to_learn").at("words");
-    last_word_added_to_batch_ =
-        j.at("batch_to_learn").at("last_word_added_to_batch").get<size_t>();
+        words_ = j.at("vocabulary");
+        batch_.words_to_learn = j.at("batch_to_learn").at("words");
+        last_word_added_to_batch_ =
+            j.at("batch_to_learn").at("last_word_added_to_batch").get<size_t>();
+    }
+    catch (std::exception const& ex) {
+        throw VocabularyError(std::format("File parsing error: {}", ex.what()));
+    }
 }
 
 void Vocabulary::exportToJsonFile(std::filesystem::path const& path) const

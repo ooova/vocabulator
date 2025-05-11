@@ -92,7 +92,7 @@ MainWindow::Layout MainWindow::calculateLayout() const {
     layout.input_size = RVector2(static_cast<float>(config_.kButtonWidth),
                                  static_cast<float>(config_.kButtonHeight));
     layout.card_size = RVector2(static_cast<float>(config_.kScreenWidth - config_.kScreenMargin * 2),
-                                static_cast<float>(config_.kScreenHeight - config_.kScreenMargin * 2 - config_.kButtonHeight));
+                                static_cast<float>(config_.kCardHeight/* config_.kScreenHeight - config_.kScreenMargin * 2 - config_.kButtonHeight */));
 
     layout.button_load_vocabulary_pos = RVector2(static_cast<float>(config_.kScreenMargin),
                                                 static_cast<float>(config_.kScreenMargin));
@@ -108,12 +108,11 @@ MainWindow::Layout MainWindow::calculateLayout() const {
                               static_cast<float>(config_.kScreenMargin * 2 + config_.kButtonHeight));
 
     layout.new_word_input_pos = RVector2(static_cast<float>(config_.kScreenMargin + config_.kElementMargin),
-                                        static_cast<float>(config_.kScreenHeight - config_.kScreenMargin -
-                                                          (config_.kElementMargin + config_.kButtonHeight) * 3));
-    layout.new_word_translation_input_pos = RVector2(layout.new_word_input_pos.x,
-                                                    layout.new_word_input_pos.y + config_.kButtonHeight + config_.kElementMargin);
-    layout.new_word_example_input_pos = RVector2(layout.new_word_translation_input_pos.x,
-                                                layout.new_word_translation_input_pos.y + config_.kButtonHeight + config_.kElementMargin);
+                                         layout.card_pos.GetY() + layout.card_size.GetY() + config_.kElementMargin);
+    layout.new_word_translation_input_pos = RVector2(static_cast<float>(config_.kScreenMargin + config_.kElementMargin),
+                                                     layout.new_word_input_pos.GetY() + layout.input_size.GetY() + config_.kElementMargin);
+    layout.new_word_example_input_pos = RVector2(static_cast<float>(config_.kScreenMargin + config_.kElementMargin),
+                                                 layout.new_word_translation_input_pos.GetY() + layout.input_size.GetY() + config_.kElementMargin);
 
     return layout;
 }
@@ -131,7 +130,10 @@ void MainWindow::draw() {
     new_word_example_input_.draw();
 
     if (!error_message_.empty()) {
-        DrawText(error_message_.c_str(), 10, config_.kScreenHeight - 20, 16, RED);
+        ::DrawText(error_message_.c_str(), 10, config_.kScreenHeight - 20, 16, RColor::Red());
+    }
+    else if (!status_message_.empty()) {
+        ::DrawText(status_message_.c_str(), 10, config_.kScreenHeight - 20, 16, RColor::Green());
     }
 
     RWindow::DrawFPS(10, 10);
@@ -146,6 +148,15 @@ void MainWindow::update(float dt) {
     new_word_input_.update(dt);
     new_word_translation_input_.update(dt);
     new_word_example_input_.update(dt);
+
+    if (!status_message_.empty() || !error_message_.empty()) {
+        status_message_timer_ += dt;
+        if (status_message_timer_ >= config_.kStatusMessageTimer) {
+            status_message_timer_ = 0;
+            error_message_.clear();
+            status_message_.clear();
+        }
+    }
 }
 
 std::shared_ptr<network::Request> MainWindow::createRequest(
@@ -153,7 +164,6 @@ std::shared_ptr<network::Request> MainWindow::createRequest(
                 network::Request::Callback callback) const
 {
     nlohmann::json body;
-    body["model"] = "gemma-3-4b-it";
     body["messages"] = nlohmann::json::array();
     body["messages"].push_back({{"role", "system"},
                                {"content", "Ты переводчик русского и английского языков.\n"
@@ -164,7 +174,9 @@ std::shared_ptr<network::Request> MainWindow::createRequest(
                                           "\"<русский вариант 1> ; <русский вариант 2> | "
                                           "<Пример использования слова или словосочетания в предложении на английском языке>\"\n\n"
                                           "Например\nслово:\n\"fine\"\nответ:\n"
-                                          "\"хорошо ; отлично | I'm fine, thank you for asking.\""}});
+                                          "\"хорошо ; отлично | I'm fine, thank you for asking.\"\n\n"
+                                          "Если запрашиваемого слова не существует, то ответ должен быть пустым. Если в слове допущена ошибка, "
+                                          "то её необходимо исправить и предоставить ответ для исправленного варианта."}});
     body["messages"].push_back({{"role", "user"}, {"content", request}});
     body["temperature"] = 0.2;
     body["stream"] = false;
@@ -181,9 +193,18 @@ std::shared_ptr<network::Request> MainWindow::createRequest(
     return http_request;
 }
 
-void MainWindow::showError(const std::string& message) {
+void MainWindow::showError(const std::string& message)
+{
+    status_message_timer_ = 0;
+    status_message_.clear();
     error_message_ = message;
-    spdlog::error("UI Error: {}", message);
+    spdlog::error("MainWindow: {}", message);
+}
+
+void MainWindow::showStatus(const std::string& message)
+{
+    status_message_timer_ = 0;
+    status_message_ = message;
 }
 
 void MainWindow::onAddWordToBatch() {
@@ -220,7 +241,11 @@ void MainWindow::onNextWord() {
 void MainWindow::onLoadVocabulary() {
     if (auto v = vocabulary_.lock()) {
         try {
+            // v->importFromFile("");
             v->importFromJsonFile("");
+            auto const msg{"vocabulary loaded successfully"};
+            spdlog::info(msg);
+            showStatus(msg);
         } catch (const std::exception& ex) {
             spdlog::error("Failed to load vocabulary: {}", ex.what());
             showError("Failed to load vocabulary");
@@ -234,6 +259,7 @@ void MainWindow::onSaveVocabulary() {
     if (auto v = vocabulary_.lock()) {
         try {
             v->exportToJsonFile("");
+            // v->exportToFile("");
         } catch (const std::exception& ex) {
             spdlog::error("Failed to save vocabulary: {}", ex.what());
             showError("Failed to save vocabulary");

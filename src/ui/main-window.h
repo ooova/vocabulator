@@ -40,6 +40,7 @@ struct Config {
     static inline const std::string kDefaultMethod{"POST"};
     static inline const std::vector<std::pair<std::string, std::string>> kDefaultHeaders{
         {{"Content-Type", "application/json"}}};
+    static constexpr float kStatusMessageTimer{3};
 };
 
 class MainWindow : public RWindow {
@@ -84,13 +85,19 @@ private:
     widgets::TextInput new_word_translation_input_;
     widgets::TextInput new_word_example_input_;
     std::string error_message_;
+    std::string status_message_;
 
-    void initWidgets();
+    float status_message_timer_{};
+
+    // methods
     Layout calculateLayout() const;
+
     std::shared_ptr<network::Request> createRequest(
         const std::string& request,
         network::Request::Callback callback) const;
+
     void showError(const std::string& message);
+    void showStatus(const std::string& message);
 
     // Button callback methods
     void onAddWordToBatch();
