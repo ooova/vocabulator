@@ -16,24 +16,20 @@ TextBox::TextBox(RVector2 position, RVector2 size, RFont&& font,
 
 TextBox& TextBox::operator<<(std::string_view text)
 {
-    const auto boxWidth = RRectangle::GetWidth() - text_.back().first.GetFontSize();
-    for (const auto ch : text) {
-        if (ch == '\n') {
+    if (!text.empty()) {
+        if (text_.empty()) {
             addParagraph();
-            continue;
         }
-        if (!text_.empty()) {
-            auto& ray_text = text_.back().first; // GetText()
-            if (!ray_text.GetText().empty()) {
-                if (boxWidth <= ray_text.MeasureEx().GetX()) {
-                    // check if text field is not empty
-                    const auto ch = ray_text.GetText().back();
-                    ray_text.text.back() = '\n';
-                    ray_text.text.push_back(ch);
-                }
+        for (const auto ch : text) {
+            if (ch == '\n') {
+                addParagraph();
+                continue;
             }
+            if (text_.back().first.MeasureEx().GetX() > (RRectangle::GetWidth() - font_.GetBaseSize())) {
+                addParagraph();
+            }
+            text_.back().first.text += ch;
         }
-        text_.back().first.SetText(text_.back().first.GetText() + std::string{ch});
     }
     return *this;
 }
@@ -96,7 +92,7 @@ void TextBox::addParagraph()
 {
     text_.emplace_back();
     text_.back().first.SetFont(font_);
-    text_.back().first.SetFontSize(16);
+    text_.back().first.SetFontSize(font_.GetBaseSize());
     text_.back().first.SetColor(textColor_);
 }
 

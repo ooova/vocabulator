@@ -19,7 +19,7 @@ Button::~Button() { stop_ = true; }
 
 void Button::setText(std::string_view const text)
 {
-    text_ = RText(font_, std::string(text), kFontSize_);
+    text_ = RText(font_, std::string(text), font_.GetBaseSize());
 }
 
 void Button::draw() const
@@ -28,7 +28,7 @@ void Button::draw() const
     text_.Draw(RRectangle::GetPosition().GetX() +
                     (RRectangle::GetSize().GetX() / 2 - text_.MeasureEx().GetX() / 2),
                 RRectangle::GetPosition().GetY() +
-                    (RRectangle::GetSize().GetY() / 2 - kFontSize_ / 2));
+                    (RRectangle::GetSize().GetY() / 2 - font_.GetBaseSize() / 2));
 }
 
 void Button::update(float dt) {

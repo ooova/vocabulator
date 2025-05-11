@@ -6,16 +6,20 @@
 #include "ui/widgets/button.h"
 #include "ui/widgets/card.h"
 #include "ui/widgets/text-input.h"
+#include "ui/widgets/text-box.h"
+
 
 #include "raylib-cpp.hpp"
 
 #include <array>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace vocabulary {
 class Vocabulary;
+class Word;
 }
 
 namespace network {
@@ -31,7 +35,12 @@ struct Config {
     static constexpr int kButtonWidth{100};
     static constexpr int kButtonHeight{30};
     static constexpr int kElementMargin{5};
-    static constexpr int kCardHeight{200};
+    static constexpr int kCardHeight{150};
+    static constexpr int kCardFontSize{28};
+    static constexpr int kTextBoxWordStatisticsFontSize{18};
+    static constexpr int kTextBoxWordStatisticsWidth{300};
+    static constexpr int kTextBoxWordStatisticsHeight{100};
+    static constexpr float kStatusMessageTimer{3};
     static inline const RColor kBackgroundColor{0x181818};
     static inline const std::string kFontPath{"../assets/fonts/Ubuntu-R.ttf"};
     static inline const std::string kDefaultServer{"localhost"};
@@ -40,7 +49,6 @@ struct Config {
     static inline const std::string kDefaultMethod{"POST"};
     static inline const std::vector<std::pair<std::string, std::string>> kDefaultHeaders{
         {{"Content-Type", "application/json"}}};
-    static constexpr float kStatusMessageTimer{3};
 };
 
 class MainWindow : public RWindow {
@@ -55,18 +63,24 @@ public:
 
 private:
     struct Layout {
+        RVector2 card_size;
+        RVector2 button_size;
+        RVector2 input_size;
+        RVector2 element_margin;
+        RVector2 text_box_word_statistics_size;
+
         RVector2 button_load_vocabulary_pos;
         RVector2 button_save_vocabulary_pos;
         RVector2 button_vocabulary_add_word_pos;
         RVector2 button_add_word_to_batch_pos;
         RVector2 button_next_word_pos;
+        RVector2 button_know_the_word_pos;
+        RVector2 button_dont_know_the_word_pos;
         RVector2 card_pos;
-        RVector2 new_word_input_pos;
-        RVector2 new_word_translation_input_pos;
-        RVector2 new_word_example_input_pos;
-        RVector2 card_size;
-        RVector2 button_size;
-        RVector2 input_size;
+        RVector2 input_new_word_pos;
+        RVector2 input_new_word_translation_pos;
+        RVector2 input_new_word_example_pos;
+        RVector2 text_box_word_statistics_pos;
     };
 
     const Config config_;
@@ -74,16 +88,21 @@ private:
     std::weak_ptr<vocabulary::Vocabulary> vocabulary_;
     std::weak_ptr<network::HttpClient> http_client_;
     Layout layout_;
+    std::optional<std::reference_wrapper<vocabulary::Word>> word_;
 
     widgets::Button button_add_word_to_batch_;
     widgets::Button button_next_word_;
+    widgets::Button button_know_the_word_;
+    widgets::Button button_dont_know_the_word_;
     widgets::Button button_load_vocabulary_;
     widgets::Button button_save_vocabulary_;
     widgets::Button button_vocabulary_add_word_;
     widgets::Card card_;
-    widgets::TextInput new_word_input_;
-    widgets::TextInput new_word_translation_input_;
-    widgets::TextInput new_word_example_input_;
+    widgets::TextInput input_new_word_;
+    widgets::TextInput input_new_word_translation_;
+    widgets::TextInput input_new_word_example_;
+    widgets::TextBox text_box_word_statistics_;
+
     std::string error_message_;
     std::string status_message_;
 
@@ -102,10 +121,15 @@ private:
     // Button callback methods
     void onAddWordToBatch();
     void onNextWord();
+    void onKnowTheWord();
+    void onDontKnowTheWord();
     void onLoadVocabulary();
     void onSaveVocabulary();
     void onAddWord();
     void handleTranslationRequest(const std::string& word);
+
+    // update word statistics text
+    void updateWordStatisticsText();
 };
 
 }  // namespace ui

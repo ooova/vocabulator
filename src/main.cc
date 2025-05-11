@@ -34,20 +34,17 @@ int main(void)
 
         auto client{std::make_shared<network::HttpClient>()};
 
-        auto window = ui::MainWindow(vocabulary, client);  // initWindow();
+        auto window = ui::MainWindow(vocabulary, client);
 
         SetTargetFPS(40);
-        //----------------------------------------------------------
-
-        // TextInput input(100, 200, 200, 40, 20);
-        // input.SetColors(WHITE, BLACK, DARKGRAY, BLACK);
 
         while (!window.ShouldClose()) {  // Detect window close button or ESC key
             auto time = GetTime();
+
             // Update
             //-----------------------------------------------------
 
-            // input.Update();
+            window.update(time - prev_time);
 
             //-----------------------------------------------------
 
@@ -55,12 +52,8 @@ int main(void)
             //-----------------------------------------------------
             BeginDrawing();
 
-            window.ClearBackground({0x28, 0x28, 0x28, 0xFF});
-
-            window.update(time - prev_time);
             window.draw();
 
-            // input.Draw();
             EndDrawing();
             //-----------------------------------------------------
 

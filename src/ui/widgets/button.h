@@ -32,7 +32,6 @@ public:
 
 private:
     std::chrono::milliseconds const kPollingSleepTimeMS{100};
-    int const kFontSize_{16};
 
     RFont const font_{};
     RColor const button_color_{};

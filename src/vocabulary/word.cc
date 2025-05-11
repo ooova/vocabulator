@@ -88,12 +88,12 @@ void Word::setDelimiters(char item_delim, char field_delim)
     field_delimiter_ = field_delim;
 }
 
-bool Word::operator<(Word const& other)
+bool Word::operator<(Word const& other) const
 {
     return retentionRate() < other.retentionRate();
 }
 
-bool Word::operator==(Word const& other)
+bool Word::operator==(Word const& other) const
 {
     return word_ == other.word_;// && translation_ == other.translation_;
 }
@@ -118,6 +118,11 @@ void from_json(nlohmann::json const& j, Word& w)
 bool operator<(std::reference_wrapper<Word> lhs, std::reference_wrapper<Word> rhs)
 {
     return lhs.get() < rhs.get();
+}
+
+bool operator==(std::reference_wrapper<Word> lhs, std::reference_wrapper<Word> rhs)
+{
+    return lhs.get() == rhs.get();
 }
 
 }  // namespace vocabulary

@@ -13,8 +13,10 @@ public:
     Card(RVector2 position, RVector2 size, vocabulary::Word const& word, RFont&& font = {});
 
     void draw();
-    void setWord(vocabulary::Word const& word);
     void update(float dt);
+
+    void setWord(vocabulary::Word const& word);
+
 private:
     TextBox text_box_;
 };

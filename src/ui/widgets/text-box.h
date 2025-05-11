@@ -28,7 +28,7 @@ public:
 
     void setTextColor(RColor const& color) { textColor_ = color; }
 
-    // void setFont(std::string_view const font_file_path);
+    void setFontSize(int font_size);
 
     virtual void draw();
 

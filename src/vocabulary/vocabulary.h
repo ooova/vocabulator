@@ -62,15 +62,17 @@ public:
 
     bool addUnknownWordToBatch();
     bool removeWordFromBatch(std::string_view const word);
-    WordRef wordToLearnFromBatch();
+    WordRef nextWordToLearnFromBatch();
     size_t batchSize() const { return batch_.words_to_learn.size(); }
 
 private:
     struct Batch {
-        std::vector<std::string> words_to_learn{};
-        bool addWord(std::string_view const word);
+        std::vector<WordRef> words_to_learn{};
+        bool addWord(WordRef word);
+        // bool addWord(std::string_view const word);
         bool removeWord(std::string_view const word);
-        // std::string getWordToLearn();
+        bool removeWord(size_t index);
+        size_t last_word_to_learn{};
     };
 
     const uint8_t kRetentionRateForKnownWord{90};
@@ -94,6 +96,8 @@ private:
     WordRef nextRandomWordToLearn();
 
     WordRef nextUnknownWordToLearn();
+
+    bool addWordToBatch(std::string_view const word);
 };
 
 }  // namespace vocabulary

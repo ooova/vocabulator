@@ -47,8 +47,8 @@ public:
 
     void setDelimiters(char item_delim, char field_delim);
 
-    bool operator<(Word const& other);
-    bool operator==(Word const& other);
+    bool operator<(Word const& other) const;
+    bool operator==(Word const& other) const;
 
 private:
     int dont_know_pressed_number_{};
@@ -64,6 +64,7 @@ void to_json(nlohmann::json& j, Word const& w);
 void from_json(nlohmann::json const& j, Word& w);
 
 bool operator<(std::reference_wrapper<Word> lhs, std::reference_wrapper<Word> rhs);
+bool operator==(std::reference_wrapper<Word> lhs, std::reference_wrapper<Word> rhs);
 
 }  // namespace vocabulary
 

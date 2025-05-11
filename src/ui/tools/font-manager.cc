@@ -15,11 +15,15 @@ FontManager::FontManager(std::filesystem::path const& font_path,
 {
 }
 
-RFont FontManager::getFont() const
+RFont FontManager::getFont(int const font_size) const
 {
+    auto const size = font_size > 0 ? font_size : font_size_;
+    if (font_path_.empty()) {
+        throw GlobalError(std::format("Font path is empty"));
+    }
     auto codepointsCount{0};
     auto codepoints = ::LoadCodepoints(Locale::getAlphabet(char_sets_).c_str(), &codepointsCount);
-    auto font{RFont(font_path_.c_str(), font_size_, codepoints, codepointsCount)};
+    auto font{RFont(font_path_.c_str(), size, codepoints, codepointsCount)};
     ::UnloadCodepoints(codepoints);
 
     if (!font.GetTexture().id) {

@@ -16,8 +16,8 @@ class FontManager {
 public:
     FontManager(std::filesystem::path const& font_path,
                 std::vector<Language> const& char_sets,
-                int const font_size = 36);
-    RFont getFont() const;
+                int const font_size = 18);
+    RFont getFont(int const font_size = 0) const;
 
 private:
     std::filesystem::path font_path_;

@@ -1,5 +1,7 @@
 #include "ui/widgets/card.h"
 
+#include <format>
+
 namespace ui::widgets {
 
 Card::Card(RVector2 position, RVector2 size, vocabulary::Word const& word, RFont&& font)
