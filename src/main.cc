@@ -17,11 +17,6 @@
 #include "ui/tools/locale.h"
 #include "nlohmann/json.hpp"
 
-
-// #include "ui/widgets/TextInput.h"
-
-constexpr const auto kDefaultVocabularyPath{std::string_view{"../assets/vocabulary.md"}};
-
 using namespace std::literals;
 
 int main(void)
@@ -30,7 +25,7 @@ int main(void)
 
     try {
         auto prev_time{GetTime()};
-        auto vocabulary{std::make_shared<vocabulary::Vocabulary>(kDefaultVocabularyPath)};
+        auto vocabulary{std::make_shared<vocabulary::Vocabulary>()};
 
         auto client{std::make_shared<network::HttpClient>()};
 

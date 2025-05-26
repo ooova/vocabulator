@@ -31,6 +31,7 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary,
                                        config.kFontPath,
                                        std::vector<tools::Language>{
                                            tools::Language::kRU, tools::Language::kEN,
+                                           tools::Language::kNumbers,
                                            tools::Language::kMathSymbols,
                                            tools::Language::kSpecSymbols}))
     , vocabulary_{vocabulary}
@@ -75,6 +76,13 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary,
                  config_.kScreenHeight);
 
     onLoadVocabulary();
+
+    auto const& stat = vocabulary_.lock()->getStatistic();
+    spdlog::info("vocabulary statistics:\nwords count: {}; known words count: {}; in progress words count: {}; new words count: {};",
+        stat.words_count,
+        stat.known_words_count,
+        stat.in_progress_words_count,
+        stat.new_words_count);
 }
 
 MainWindow::Layout MainWindow::calculateLayout() const
@@ -155,6 +163,7 @@ void MainWindow::draw()
     input_new_word_.draw();
     input_new_word_translation_.draw();
     input_new_word_example_.draw();
+    text_box_word_statistics_.draw();
 
     if (!error_message_.empty()) {
         ::DrawText(error_message_.c_str(), 10, config_.kScreenHeight - 20, 16, RColor::Red());
@@ -257,6 +266,7 @@ void MainWindow::onNextWord()
 {
     if (auto v = vocabulary_.lock()) {
         if (word_ = v->nextWordToLearnFromBatch(); word_.has_value()) {
+            updateWordStatisticsText();
             try {
                 card_.setWord(word_.value());
             } catch (const VocabularyError& ex) {
@@ -280,6 +290,7 @@ void MainWindow::onKnowTheWord()
         showError("No word");
     }
 }
+
 void MainWindow::onDontKnowTheWord()
 {
     if (word_.has_value()) {
@@ -294,8 +305,8 @@ void MainWindow::onLoadVocabulary()
 {
     if (auto v = vocabulary_.lock()) {
         try {
-            // v->importFromFile("");
-            v->importFromJsonFile("");
+            // v->importFromFile(config_.kVocabularyPathMd);
+            v->importFromJsonFile(config_.kVocabularyPathJson);
             auto const msg{"vocabulary loaded successfully"};
             spdlog::info(msg);
             showStatus(msg);
@@ -311,9 +322,16 @@ void MainWindow::onLoadVocabulary()
 void MainWindow::onSaveVocabulary()
 {
     if (auto v = vocabulary_.lock()) {
+        auto const& stat = vocabulary_.lock()->getStatistic();
+        spdlog::info("vocabulary statistics upon saving:\nwords count: {}; known words count: {}; in progress words count: {}; new words count: {};",
+            stat.words_count,
+            stat.known_words_count,
+            stat.in_progress_words_count,
+            stat.new_words_count);
+
         try {
-            v->exportToJsonFile("");
-            // v->exportToFile("");
+            v->exportToJsonFile(config_.kVocabularyPathJson);
+            // v->exportToFile(config_.kVocabularyPathMd);
         } catch (const std::exception& ex) {
             spdlog::error("Failed to save vocabulary: {}", ex.what());
             showError("Failed to save vocabulary");
@@ -395,17 +413,29 @@ void MainWindow::handleTranslationRequest(const std::string& word)
 
 void MainWindow::updateWordStatisticsText()
 {
-    // auto const message_statistics_impressions{
-    //     std::format("\nImpressions: {} (known: {}, don't known: {})",
-    //                 word.knowNumber() + word.dontKnowNumber(), word.knowNumber(),
-    //                 word.dontKnowNumber())};
-    // text_box_ << message_statistics_impressions;
-    // text_box_.setAlignment(TextBox::Alignment::kRight);
+    if (!word_.has_value()) {
+        return;
+    }
 
-    // auto const message_statistics_retention_rate{
-    //     std::format("\nRetention rate: {}%", word.retentionRate())};
-    // text_box_ << message_statistics_retention_rate;
-    // text_box_.setAlignment(TextBox::Alignment::kRight);
+    text_box_word_statistics_.clear();
+
+    auto const& word = word_->get();
+
+    auto const message_statistics_impressions{
+        std::format("\nImpressions: {} (known: {}, don't known: {})",
+                    word.knowNumber() + word.dontKnowNumber(), word.knowNumber(),
+                    word.dontKnowNumber())};
+    text_box_word_statistics_ << message_statistics_impressions;
+    text_box_word_statistics_.setAlignment(widgets::TextBox::Alignment::kRight);
+
+    auto const message_statistics_retention_rate{
+        std::format("\nRetention rate: {}%", word.retentionRate())};
+    text_box_word_statistics_ << message_statistics_retention_rate;
+    text_box_word_statistics_.setAlignment(widgets::TextBox::Alignment::kRight);
+
+    spdlog::trace("word \'{}\' statistics:{}{}",
+                  word.word(), message_statistics_impressions,
+                  message_statistics_retention_rate);
 }
 
 }  // namespace ui

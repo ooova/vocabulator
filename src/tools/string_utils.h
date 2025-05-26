@@ -19,6 +19,8 @@ void trim(std::string& str);
 
 std::vector<std::string> split(std::string_view str, char delimiter);
 
+std::string codepoint_to_utf8(int codepoint);
+
 }  // namespace tools::string_utils
 
 #endif  // TOOLS_STRING_UTILS_H

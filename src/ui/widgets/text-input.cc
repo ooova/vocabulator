@@ -1,5 +1,7 @@
 #include "text-input.h"
 
+#include "tools/string_utils.h"
+
 namespace ui::widgets {
 
 TextInput::TextInput(RVector2 position, RVector2 size, RFont&& font,
@@ -22,7 +24,7 @@ void TextInput::update(float dt) {
 
         int codepoint;
         while ((codepoint = GetCharPressed()) != 0) {
-            std::string char_str = codepoint_to_utf8(codepoint);
+            std::string char_str = tools::string_utils::codepoint_to_utf8(codepoint);
             text_.insert(cursor_pos_, char_str);
             cursor_pos_ += char_str.size();
         }
@@ -111,21 +113,6 @@ size_t TextInput::next_char_pos(size_t pos) const {
         pos++;
     }
     return pos;
-}
-
-std::string TextInput::codepoint_to_utf8(int codepoint) const {
-    std::string result;
-    if (codepoint <= 0x7F) {
-        result += static_cast<char>(codepoint);
-    } else if (codepoint <= 0x7FF) {
-        result += static_cast<char>(0xC0 | (codepoint >> 6));
-        result += static_cast<char>(0x80 | (codepoint & 0x3F));
-    } else if (codepoint <= 0xFFFF) {
-        result += static_cast<char>(0xE0 | (codepoint >> 12));
-        result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-        result += static_cast<char>(0x80 | (codepoint & 0x3F));
-    }
-    return result;
 }
 
 }  // namespace ui::widgets

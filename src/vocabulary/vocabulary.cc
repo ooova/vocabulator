@@ -14,13 +14,6 @@
 
 namespace vocabulary {
 
-Vocabulary::Vocabulary(std::filesystem::path const& import_from, char item_delim,
-                       char field_delim)
-{
-    import_from_file_path_ = import_from;
-    importFromFile(import_from, item_delim, field_delim);
-}
-
 Translation const& Vocabulary::translate(std::string_view const word)
 {
     auto w = findWord(word);
@@ -41,12 +34,10 @@ Vocabulary::Statistic Vocabulary::getStatistic() const
     for (auto const& w : words_) {
         if (w.retentionRate() > kRetentionRateForKnownWord) {
             ++result.known_words_count;
-        } else if (w.retentionRate() == 0) {
-            ++result.new_words_count;
-        } else {
-            ++result.in_progress_words_count;
         }
     }
+    result.in_progress_words_count = batch_.words_to_learn.size();
+    result.new_words_count = result.words_count - result.known_words_count;
     return result;
 }
 
@@ -64,11 +55,10 @@ void Vocabulary::addWord(Word&& word)
 void Vocabulary::importFromFile(std::filesystem::path const& path, char item_delim,
                                 char field_delim)
 {
-    auto path_ = path.empty() ? import_from_file_path_ : path;
-    std::ifstream inputFile(path_ /* , std::ios::app */);
+    std::ifstream inputFile(path);
     if (!inputFile) {
         auto const msg{
-            fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path_.string())};
+            fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path.string())};
         throw VocabularyError(msg);
     }
 
@@ -83,13 +73,12 @@ void Vocabulary::importFromFile(std::filesystem::path const& path, char item_del
     }
 
     spdlog::info("vocabulary \'{}\' successfully imported. Words count: {}",
-                 path_.string(), words_.size());
+        path.string(), words_.size());
 }
 
 void Vocabulary::exportToFile(std::filesystem::path const& path)
 {
-    auto path_ = path.empty() ? import_from_file_path_ : path;
-    std::ofstream outputFile(path_ /* , std::ios::app */);
+    std::ofstream outputFile(path);
     try {
         for (auto const& word : words_) {
             outputFile << word.toString() << '\n';
@@ -98,16 +87,15 @@ void Vocabulary::exportToFile(std::filesystem::path const& path)
         spdlog::error("{}", e.what());
     }
 
-    spdlog::info("vocabulary successfully exported to the file \'{}\'", path_.string());
+    spdlog::info("vocabulary successfully exported to the file \'{}\'", path.string());
 }
 
 void Vocabulary::importFromJsonFile(std::filesystem::path const& path)
 {
-    auto path_ = path.empty() ? kDefaultVocabularyJsonPath : path;
-    std::ifstream inputFile(path_);
+    std::ifstream inputFile(path);
     if (!inputFile) {
         auto const msg{
-            fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path_.string())};
+            fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path.string())};
         throw VocabularyError(msg);
     }
 
@@ -115,8 +103,8 @@ void Vocabulary::importFromJsonFile(std::filesystem::path const& path)
         auto j = nlohmann::json::parse(inputFile);
 
         words_ = j.at("vocabulary");
-        last_word_added_to_batch_ =
-            j.at("batch_to_learn").at("last_word_added_to_batch").get<size_t>();
+        next_word_to_added_to_batch_ =
+            j.at("batch_to_learn").at("next_word_to_added_to_batch").get<size_t>();
         const auto& words_to_learn_json = j.at("batch_to_learn").at("words");
         for (auto const& w : words_to_learn_json) {
             addWordToBatch(std::string(w));
@@ -124,28 +112,29 @@ void Vocabulary::importFromJsonFile(std::filesystem::path const& path)
     }
     catch (std::exception const& ex) {
         auto const msg{
-            fmt::format("{}(): failed to parse json file \'{}\': {}", __FUNCTION__, path_.string(), ex.what())};
+            fmt::format("{}(): failed to parse json file \'{}\': {}", __FUNCTION__, path.string(), ex.what())};
         throw VocabularyError(msg);
     }
 }
 
+
 void Vocabulary::exportToJsonFile(std::filesystem::path const& path) const
 {
-    auto path_ = path.empty() ? kDefaultVocabularyJsonPath : path;
-    std::ofstream outputFile(path_/* , std::ios::app */);
+    std::ofstream outputFile(path);
+
+    if (!outputFile) {
+        auto const msg{
+            fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path.string())};
+        throw VocabularyError(msg);
+    }
     try {
-        if (!outputFile) {
-            auto const msg{
-                fmt::format("{}(): failed to open \'{}\'", __FUNCTION__, path_.string())};
-            throw VocabularyError(msg);
-        }
         nlohmann::json j;
         j["vocabulary"] = words_;
         j["batch_to_learn"]["words"] = nlohmann::json::array();
         for (auto const& w : batch_.words_to_learn) {
             j["batch_to_learn"]["words"].push_back(w->get().word());
         }
-        j["batch_to_learn"]["last_word_added_to_batch"] = last_word_added_to_batch_;
+        j["batch_to_learn"]["next_word_to_added_to_batch"] = next_word_to_added_to_batch_;
         outputFile << j.dump(4);
 
     } catch (std::exception const& e) {
@@ -184,12 +173,7 @@ bool Vocabulary::removeWordFromBatch(std::string_view const word)
 // then this word is considered as known and will be removed from the batch.
 Vocabulary::WordRef Vocabulary::nextWordToLearnFromBatch()
 {
-    if (batch_.words_to_learn.empty()) {
-        spdlog::warn("batch to learn is empty");
-        return std::nullopt;
-    }
-
-    while ((batch_.last_word_to_learn < batch_.words_to_learn.size()) &&
+    if ((batch_.last_word_to_learn < batch_.words_to_learn.size()) &&
            (kRetentionRateForKnownWord <=
             batch_.words_to_learn.at(batch_.last_word_to_learn)->get().retentionRate())) {
         batch_.removeWord(batch_.last_word_to_learn);
@@ -204,33 +188,11 @@ Vocabulary::WordRef Vocabulary::nextWordToLearnFromBatch()
         batch_.last_word_to_learn = 0;
     }
 
-    auto word = batch_.words_to_learn.at(batch_.last_word_to_learn++);
+    auto word = batch_.words_to_learn.at(batch_.last_word_to_learn);
+    ++batch_.last_word_to_learn;
 
     spdlog::trace("word to learn: {}", word->get().word());
     return word;
-    // std::set<WordRef> words_to_learn{};
-    // for (auto& w : batch_.words_to_learn) {
-    //     // try to find the word 'w' and check it's retention rate
-    //     // if the retention rate is not enough, add the word to the set
-    //     if (auto word = findWord(w); word.has_value()) {
-    //         if (word->get().retentionRate() < kRetentionRateForKnownWord) {
-    //             words_to_learn.insert(word.value());
-    //         }
-    //     }
-    //     // if the retention rate is enough - remove the word form the batch
-    //     else {
-    //         batch_.removeWord(w);
-    //     }
-    // }
-
-    // if (!words_to_learn.empty()) {
-    //     auto word = words_to_learn.begin()->value();
-    //     spdlog::trace("word to learn: {}", word.get().word());
-    //     return word;
-    // }
-
-    // spdlog::warn("No words to learn or a batch is empty");
-    // return std::nullopt;
 }
 
 // private ================================================
@@ -272,15 +234,10 @@ Vocabulary::WordRef Vocabulary::nextUnknownWordToLearn()
         return std::nullopt;
     }
 
-    // for (auto& w : words_) {
-    //     if (w.retentionRate() < kRetentionRateForKnownWord) {
-    //         return w;
-    //     }
-    // }
 
     try {
-        while (last_word_added_to_batch_ < words_.size()) {
-            auto& w = words_.at(last_word_added_to_batch_++);
+        while (next_word_to_added_to_batch_ < words_.size()) {
+            auto& w = words_.at(next_word_to_added_to_batch_++);
             if (w.retentionRate() < kRetentionRateForKnownWord) {
                 spdlog::trace("word \'{}\' returned from nextUnknownWordToLearn()",
                               w.word());
@@ -289,7 +246,7 @@ Vocabulary::WordRef Vocabulary::nextUnknownWordToLearn()
         }
     } catch (std::exception const& e) {
         spdlog::error("can not get random word at index {}: {}",
-                      last_word_added_to_batch_, e.what());
+                      next_word_to_added_to_batch_, e.what());
     }
 
     spdlog::warn("{}(): no words to learn, you know everything! ᕕ(⌐■_■)ᕗ ♪♬",
@@ -306,11 +263,12 @@ bool Vocabulary::addWordToBatch(std::string_view const word)
     }
 
     auto word_added{false};
-    auto word_to_add = findWord(word);
-    while (!word_added && word_to_add.has_value()) {
-        word_added = batch_.addWord(word_to_add);
+    WordRef word_to_add{std::nullopt};
+
+    do {
         word_to_add = findWord(word);
-    }
+        word_added = batch_.addWord(word_to_add);
+    } while (!word_added && word_to_add.has_value());
 
     return word_added;
 }
@@ -337,27 +295,6 @@ bool Vocabulary::Batch::addWord(WordRef word)
     return true;
 }
 
-// bool Vocabulary::Batch::addWord(std::string_view const word)
-// {
-//     auto it = std::find_if(words_to_learn.begin(), words_to_learn.end(),
-//                            [&word](auto const& w) { return w->get().word() == word; });
-
-//     if (it != words_to_learn.end()) {
-//         spdlog::warn("word \'{}\' is already in the batch", word);
-//         return false;
-//     }
-
-//     if (auto w = findWord(word); w.has_value()) {
-//         words_to_learn.push_back(w);
-//         spdlog::info("word \'{}\' added to batch", w->get().word());
-
-//         return true;
-//     }
-
-//     spdlog::error("word \'{}\' not found in vocabulary", word);
-//     return false;
-// }
-
 bool Vocabulary::Batch::removeWord(std::string_view const word)
 {
     auto it = std::remove_if(words_to_learn.begin(), words_to_learn.end(),
@@ -378,18 +315,14 @@ bool Vocabulary::Batch::removeWord(std::string_view const word)
 
 bool Vocabulary::Batch::removeWord(size_t index)
 {
-    if (index >= words_to_learn.size()) {
-        spdlog::warn("index {} is out of range", index);
+    if (words_to_learn.empty() || index >= words_to_learn.size()) {
+        spdlog::warn("index {} is out of range. Batch size={}", index, words_to_learn.size());
         return false;
     }
 
     words_to_learn.erase(std::next(words_to_learn.begin(), index));
-    if (words_to_learn.size() == 0) {
-        last_word_to_learn = 0;
-    } else if (index < last_word_to_learn) {
-        --last_word_to_learn;
-    }
-    spdlog::info("word at index {} removed from batch", index);
+
+    spdlog::info("word at index {} removed from batch. Remaining words: {}", index, words_to_learn.size());
 
     return true;
 }

@@ -2,7 +2,7 @@
 
 #include "common/exceptions/global_error.h"
 
-#include <format>
+#include "spdlog/spdlog.h"
 
 namespace ui::tools {
 
@@ -18,16 +18,19 @@ FontManager::FontManager(std::filesystem::path const& font_path,
 RFont FontManager::getFont(int const font_size) const
 {
     auto const size = font_size > 0 ? font_size : font_size_;
+    RFont font{};
     if (font_path_.empty()) {
-        throw GlobalError(std::format("Font path is empty"));
+        spdlog::error("Font path is empty, default font is loaded");
     }
+
     auto codepointsCount{0};
     auto codepoints = ::LoadCodepoints(Locale::getAlphabet(char_sets_).c_str(), &codepointsCount);
-    auto font{RFont(font_path_.c_str(), size, codepoints, codepointsCount)};
-    ::UnloadCodepoints(codepoints);
 
-    if (!font.GetTexture().id) {
-        throw GlobalError(std::format("Font loading from \"{}\" failed", font_path_.string()));
+    try {
+        font = std::move(RFont(font_path_.generic_string(), size, codepoints, codepointsCount));
+    }
+    catch (raylib::RaylibException const& ex) {
+        spdlog::error("Font loading from \"{}\" failed: {}", font_path_.string(), ex.what());
     }
 
     return font;

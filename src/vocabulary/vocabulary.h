@@ -35,9 +35,6 @@ public:
     static int const kMaxWordsToLearn{15};
 
     Vocabulary() = default;
-    Vocabulary(std::filesystem::path const& import_from,
-               char item_delim = kDefaultItemsDelimiter,
-               char field_delim = kDefaultFieldsDelimiter);
 
     /**
      * @throw VocabularyError if word is not found
@@ -68,22 +65,18 @@ public:
 private:
     struct Batch {
         std::vector<WordRef> words_to_learn{};
+        size_t last_word_to_learn{};
         bool addWord(WordRef word);
-        // bool addWord(std::string_view const word);
         bool removeWord(std::string_view const word);
         bool removeWord(size_t index);
-        size_t last_word_to_learn{};
     };
 
-    const uint8_t kRetentionRateForKnownWord{90};
+    const uint8_t kRetentionRateForKnownWord{85};
     size_t next_word_index_{0};
     std::vector<Word> words_;
-    size_t last_word_added_to_batch_{0};
-    // current batch of words to learn
-    Batch batch_;
+    size_t next_word_to_added_to_batch_{0};
 
-    // std::weak_ptr<LearningStrategies::Strategy> learning_strategy_;
-    std::filesystem::path import_from_file_path_{};
+    Batch batch_;
 
     /**
      * @throw VocabularyError if word is not found

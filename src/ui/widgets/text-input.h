@@ -38,7 +38,6 @@ private:
 
     size_t prev_char_pos(size_t pos) const;
     size_t next_char_pos(size_t pos) const;
-    std::string codepoint_to_utf8(int codepoint) const;
 };
 
 }  // namespace ui::widgets

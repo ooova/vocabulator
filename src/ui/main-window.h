@@ -43,6 +43,8 @@ struct Config {
     static constexpr float kStatusMessageTimer{3};
     static inline const RColor kBackgroundColor{0x181818};
     static inline const std::string kFontPath{"../assets/fonts/Ubuntu-R.ttf"};
+    static inline const std::string kVocabularyPathMd{"../assets/vocabulary.md"};
+    static inline const std::string kVocabularyPathJson{"../assets/vocabulary.json"};
     static inline const std::string kDefaultServer{"localhost"};
     static inline const std::string kDefaultPort{"1234"};
     static inline const std::string kDefaultTarget{"/v1/chat/completions"};
@@ -88,7 +90,7 @@ private:
     std::weak_ptr<vocabulary::Vocabulary> vocabulary_;
     std::weak_ptr<network::HttpClient> http_client_;
     Layout layout_;
-    std::optional<std::reference_wrapper<vocabulary::Word>> word_;
+    std::weak_ptr<vocabulary::Word> word_;
 
     widgets::Button button_add_word_to_batch_;
     widgets::Button button_next_word_;

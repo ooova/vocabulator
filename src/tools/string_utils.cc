@@ -57,4 +57,19 @@ std::vector<std::string> split(std::string_view str, char delimiter)
     return tokens;
 }
 
+std::string codepoint_to_utf8(int codepoint) {
+    std::string result;
+    if (codepoint <= 0x7F) {
+        result += static_cast<char>(codepoint);
+    } else if (codepoint <= 0x7FF) {
+        result += static_cast<char>(0xC0 | (codepoint >> 6));
+        result += static_cast<char>(0x80 | (codepoint & 0x3F));
+    } else if (codepoint <= 0xFFFF) {
+        result += static_cast<char>(0xE0 | (codepoint >> 12));
+        result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        result += static_cast<char>(0x80 | (codepoint & 0x3F));
+    }
+    return result;
+}
+
 }  // namespace tools::string_utils
