@@ -4,9 +4,10 @@
 #include <filesystem>
 #include <string_view>
 #include <vector>
-#include <optional>
+#include <deque>
 #include <functional>
 #include <string>
+#include <memory>
 
 #include "common/exceptions/vocabulary_error.h"
 #include "vocabulary/translation.h"
@@ -20,7 +21,7 @@ constexpr const auto kDefaultVocabularyJsonPath{std::string_view{"../assets/voca
 
 class Vocabulary final {
 public:
-    using WordRef = std::optional<std::reference_wrapper<Word>>;
+    using WordWeakPtr = std::weak_ptr<Word>;
 
     struct Statistic {
         size_t words_count{};
@@ -55,43 +56,35 @@ public:
     void importFromJsonFile(std::filesystem::path const& path);
     void exportToJsonFile(std::filesystem::path const& path) const;
 
-    std::vector<Word> const& words() const;
-
     bool addUnknownWordToBatch();
-    bool removeWordFromBatch(std::string_view const word);
-    WordRef nextWordToLearnFromBatch();
-    size_t batchSize() const { return batch_.words_to_learn.size(); }
+    WordWeakPtr nextWordToLearnFromBatch();
+    size_t batchSize() const { return batch_.size(); }
 
 private:
-    struct Batch {
-        std::vector<WordRef> words_to_learn{};
-        size_t last_word_to_learn{};
-        bool addWord(WordRef word);
-        bool removeWord(std::string_view const word);
-        bool removeWord(size_t index);
-    };
+    using Batch = std::deque<WordWeakPtr>;
+
+    std::vector<std::shared_ptr<Word>> words_;
+    Batch batch_;
 
     const uint8_t kRetentionRateForKnownWord{85};
     size_t next_word_index_{0};
-    std::vector<Word> words_;
     size_t next_word_to_added_to_batch_{0};
-
-    Batch batch_;
 
     /**
      * @throw VocabularyError if word is not found
      */
-    WordRef findWord(std::string_view const word);
+    WordWeakPtr findWord(std::string_view const word);
 
-    /**
-     * @throw VocabularyError if there is no word to learn
-     */
-    WordRef nextRandomWordToLearn();
-
-    WordRef nextUnknownWordToLearn();
+    WordWeakPtr nextUnknownWordToLearn();
 
     bool addWordToBatch(std::string_view const word);
 };
+
+void to_json(nlohmann::json& j, std::vector<std::shared_ptr<Word>> const& words);
+void from_json(nlohmann::json const& j, std::vector<std::shared_ptr<Word>>& words);
+
+void to_json(nlohmann::json& j, std::deque<std::weak_ptr<Word>> const& batch);
+void from_json(nlohmann::json const& j, std::deque<std::weak_ptr<Word>>& batch);
 
 }  // namespace vocabulary
 

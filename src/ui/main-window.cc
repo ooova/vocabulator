@@ -265,10 +265,11 @@ void MainWindow::onAddWordToBatch()
 void MainWindow::onNextWord()
 {
     if (auto v = vocabulary_.lock()) {
-        if (word_ = v->nextWordToLearnFromBatch(); word_.has_value()) {
+        word_ = v->nextWordToLearnFromBatch();
+        if (auto word = word_.lock()) {
             updateWordStatisticsText();
             try {
-                card_.setWord(word_.value());
+                card_.setWord(*word);
             } catch (const VocabularyError& ex) {
                 showError(std::format("Failed to display word: {}", ex.what()));
             }
@@ -283,8 +284,8 @@ void MainWindow::onNextWord()
 
 void MainWindow::onKnowTheWord()
 {
-    if (word_.has_value()) {
-        word_->get().know();
+    if (!word_.expired()) {
+        word_.lock()->know();
         onNextWord();
     } else {
         showError("No word");
@@ -293,8 +294,8 @@ void MainWindow::onKnowTheWord()
 
 void MainWindow::onDontKnowTheWord()
 {
-    if (word_.has_value()) {
-        word_->get().dontKnow();
+    if (!word_.expired()) {
+        word_.lock()->dontKnow();
         onNextWord();
     } else {
         showError("No word");
@@ -322,7 +323,7 @@ void MainWindow::onLoadVocabulary()
 void MainWindow::onSaveVocabulary()
 {
     if (auto v = vocabulary_.lock()) {
-        auto const& stat = vocabulary_.lock()->getStatistic();
+        auto const& stat = v->getStatistic();
         spdlog::info("vocabulary statistics upon saving:\nwords count: {}; known words count: {}; in progress words count: {}; new words count: {};",
             stat.words_count,
             stat.known_words_count,
@@ -413,28 +414,28 @@ void MainWindow::handleTranslationRequest(const std::string& word)
 
 void MainWindow::updateWordStatisticsText()
 {
-    if (!word_.has_value()) {
+    if (word_.expired()) {
         return;
     }
 
     text_box_word_statistics_.clear();
 
-    auto const& word = word_->get();
+    auto word = word_.lock();
 
     auto const message_statistics_impressions{
         std::format("\nImpressions: {} (known: {}, don't known: {})",
-                    word.knowNumber() + word.dontKnowNumber(), word.knowNumber(),
-                    word.dontKnowNumber())};
+                    word->knowNumber() + word->dontKnowNumber(), word->knowNumber(),
+                    word->dontKnowNumber())};
     text_box_word_statistics_ << message_statistics_impressions;
     text_box_word_statistics_.setAlignment(widgets::TextBox::Alignment::kRight);
 
     auto const message_statistics_retention_rate{
-        std::format("\nRetention rate: {}%", word.retentionRate())};
+        std::format("\nRetention rate: {}%", word->retentionRate())};
     text_box_word_statistics_ << message_statistics_retention_rate;
     text_box_word_statistics_.setAlignment(widgets::TextBox::Alignment::kRight);
 
     spdlog::trace("word \'{}\' statistics:{}{}",
-                  word.word(), message_statistics_impressions,
+                  word->word(), message_statistics_impressions,
                   message_statistics_retention_rate);
 }
 

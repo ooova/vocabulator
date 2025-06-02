@@ -1,4 +1,5 @@
 build/
 .vscode
 test/build/
-assets/vocabulary*
+assets/*.json
+assets/*.md

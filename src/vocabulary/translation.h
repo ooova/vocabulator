@@ -37,6 +37,8 @@ public:
     Translation& operator=(Translation&& other) = default;
     Translation(Translation const& other) = delete;
     Translation& operator=(Translation const& other) = delete;
+    // Translation(Translation const& other) = default;
+    // Translation& operator=(Translation const& other) = default;
 
     void setDelimiters(char item_delim, char field_delim);
     std::pair<char, char> delimiters() const;

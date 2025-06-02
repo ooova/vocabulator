@@ -33,6 +33,8 @@ public:
     Word& operator=(Word&& other) = default;
     Word(Word const& other) = delete;
     Word& operator=(Word const& other) = delete;
+    // Word(Word const& other) = default;
+    // Word& operator=(Word const& other) = default;
 
     std::string word() const;
     void addTranslation(Translation&& translation);
