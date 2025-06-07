@@ -155,15 +155,13 @@ bool Vocabulary::addUnknownWordToBatch()
         return false;
     }
 
+    // if the word is added to batch as "unknown",
+    // let's mark it as "unknown" by pressing "don't know" button :)
+    w.lock()->dontKnow();
+
     batch_.push_back(w);
     return true;
 }
-
-// // how to remove word from queue if it's in the middle of the queue..?
-// bool Vocabulary::removeWordFromBatch(std::string_view const word)
-// {
-
-// }
 
 Vocabulary::WordWeakPtr Vocabulary::nextWordToLearnFromBatch()
 {

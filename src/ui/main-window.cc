@@ -144,7 +144,7 @@ MainWindow::Layout MainWindow::calculateLayout() const
 
     layout.text_box_word_statistics_pos = RVector2(
         config_.kScreenWidth - config_.kScreenMargin - config_.kElementMargin - config_.kTextBoxWordStatisticsWidth,
-        layout.card_pos.GetY() + config_.kElementMargin);
+        layout.card_pos.GetY() + layout.card_size.GetY() + config_.kElementMargin);
 
     return layout;
 }
@@ -430,7 +430,7 @@ void MainWindow::updateWordStatisticsText()
     text_box_word_statistics_.setAlignment(widgets::TextBox::Alignment::kRight);
 
     auto const message_statistics_retention_rate{
-        std::format("\nRetention rate: {}%", word->retentionRate())};
+        std::format("\nRetention rate: {}", word->retentionRate())};
     text_box_word_statistics_ << message_statistics_retention_rate;
     text_box_word_statistics_.setAlignment(widgets::TextBox::Alignment::kRight);
 

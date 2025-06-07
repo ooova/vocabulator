@@ -75,11 +75,21 @@ std::string Word::toString() const
 }
 
 uint8_t Word::retentionRate() const {
-    if (know_pressed_number_ + dont_know_pressed_number_ == 0) {
-        return 0;
+    // retention rate as simple percentage rate
+    // if (know_pressed_number_ + dont_know_pressed_number_ == 0) {
+    //     return 0;
+    // }
+
+    // return static_cast<uint8_t>(100.0f * know_pressed_number_ / (know_pressed_number_ + dont_know_pressed_number_));
+
+    // retention rate as simple difference between "know" and "don't know"
+    uint8_t rate{0};
+    const auto diff{know_pressed_number_ - dont_know_pressed_number_};
+    if (0 < diff) {
+        rate = diff;
     }
 
-    return static_cast<uint8_t>(100.0f * know_pressed_number_ / (know_pressed_number_ + dont_know_pressed_number_));
+    return rate;
 }
 
 void Word::setDelimiters(char item_delim, char field_delim)

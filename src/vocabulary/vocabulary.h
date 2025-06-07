@@ -66,7 +66,11 @@ private:
     std::vector<std::shared_ptr<Word>> words_;
     Batch batch_;
 
-    const uint8_t kRetentionRateForKnownWord{85};
+    // for retention rate in percentage
+    // const uint8_t kRetentionRateForKnownWord{85};
+    // for retention rate as "know" - "don't know" difference
+    const uint8_t kRetentionRateForKnownWord{3};
+
     size_t next_word_index_{0};
     size_t next_word_to_added_to_batch_{0};
 
