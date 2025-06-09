@@ -22,13 +22,15 @@ using namespace std::literals;
 
 MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary,
                        std::weak_ptr<network::HttpClient> http_client,
-                       const Config& config,
                        std::shared_ptr<ui::tools::FontManager> font_manager)
-    : RWindow(config.kScreenWidth, config.kScreenHeight, "Vocabulator")
-    , config_(config)
+    : RWindow(common::Config::instance().getValue<int>(kWindowWidth),
+              common::Config::instance().getValue<int>(kWindowHeight),
+              "Vocabulator",
+              (common::Config::instance().getValue<bool>(kWindowResizable) ? FLAG_WINDOW_RESIZABLE : 0))
+    , config_{common::Config::instance()}
     , font_manager_(font_manager ? font_manager
                                  : std::make_shared<ui::tools::FontManager>(
-                                       config.kFontPath,
+                                       config_.getValue<std::string>(kFontPath),
                                        std::vector<tools::Language>{
                                            tools::Language::kRU, tools::Language::kEN,
                                            tools::Language::kNumbers,
@@ -36,44 +38,49 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary,
                                            tools::Language::kSpecSymbols}))
     , vocabulary_{vocabulary}
     , http_client_{http_client}
-    , layout_{calculateLayout()}
-    , button_add_word_to_batch_{layout_.button_add_word_to_batch_pos, layout_.button_size,
+{
+    spdlog::info("MainWindow initialized with screen {}x{}", config_.getValue<int>(kWindowWidth), config_.getValue<int>(kWindowHeight));
+
+    SetTargetFPS(60);
+    SetMinSize(config_.getValue<int>(kWindowWidth), config_.getValue<int>(kWindowHeight));
+
+    calculateLayout();
+
+    // create UI elements
+    button_add_word_to_batch_ = std::make_unique<widgets::Button>(layout_.button_add_word_to_batch_pos, layout_.button_size,
                                 ui::tools::Locale::translateInterface("add to batch"),
-                                [this] { onAddWordToBatch(); }, font_manager_->getFont()}
-    , button_next_word_{layout_.button_next_word_pos, layout_.button_size,
+                                [this] { onAddWordToBatch(); }, font_manager_->getFont());
+    button_next_word_ = std::make_unique<widgets::Button>(layout_.button_next_word_pos, layout_.button_size,
                         ui::tools::Locale::translateInterface("next"),
-                        [this] { onNextWord(); }, font_manager_->getFont()}
-    , button_know_the_word_{layout_.button_know_the_word_pos, layout_.button_size,
+                        [this] { onNextWord(); }, font_manager_->getFont());
+    button_know_the_word_ = std::make_unique<widgets::Button>(layout_.button_know_the_word_pos, layout_.button_size,
                             ui::tools::Locale::translateInterface("know"),
-                            [this] { onKnowTheWord(); }, font_manager_->getFont()}
-    , button_dont_know_the_word_{layout_.button_dont_know_the_word_pos,
+                            [this] { onKnowTheWord(); }, font_manager_->getFont());
+    button_dont_know_the_word_ = std::make_unique<widgets::Button>(layout_.button_dont_know_the_word_pos,
                                  layout_.button_size,
                                  ui::tools::Locale::translateInterface("don't know"),
                                  [this] { onDontKnowTheWord(); },
-                                 font_manager_->getFont()}
-    , button_load_vocabulary_{layout_.button_load_vocabulary_pos, layout_.button_size,
+                                 font_manager_->getFont());
+    button_load_vocabulary_ = std::make_unique<widgets::Button>(layout_.button_load_vocabulary_pos, layout_.button_size,
                               ui::tools::Locale::translateInterface("load vocabulary"),
-                              [this] { onLoadVocabulary(); }, font_manager_->getFont()}
-    , button_save_vocabulary_{layout_.button_save_vocabulary_pos, layout_.button_size,
+                              [this] { onLoadVocabulary(); }, font_manager_->getFont());
+    button_save_vocabulary_ = std::make_unique<widgets::Button>(layout_.button_save_vocabulary_pos, layout_.button_size,
                               ui::tools::Locale::translateInterface("save vocabulary"),
-                              [this] { onSaveVocabulary(); }, font_manager_->getFont()}
-    , button_vocabulary_add_word_{layout_.button_vocabulary_add_word_pos,
+                              [this] { onSaveVocabulary(); }, font_manager_->getFont());
+    button_vocabulary_add_word_ = std::make_unique<widgets::Button>(layout_.button_vocabulary_add_word_pos,
                                   layout_.button_size,
                                   ui::tools::Locale::translateInterface("add word"),
-                                  [this] { onAddWord(); }, font_manager_->getFont()}
-    , card_{layout_.card_pos, layout_.card_size, {}, font_manager_->getFont(config_.kCardFontSize)}
-    , input_new_word_{layout_.input_new_word_pos, layout_.input_size,
-                      font_manager_->getFont()}
-    , input_new_word_translation_{layout_.input_new_word_translation_pos,
-                                  layout_.input_size, font_manager_->getFont()}
-    , input_new_word_example_{layout_.input_new_word_example_pos, layout_.input_size,
-                              font_manager_->getFont()}
-    , text_box_word_statistics_{
+                                  [this] { onAddWord(); }, font_manager_->getFont());
+    card_ = std::make_unique<widgets::Card>(layout_.card_pos, layout_.card_size, vocabulary::Word(), font_manager_->getFont(config_.getValue<int>(kCardFontSize)));
+    input_new_word_ = std::make_unique<widgets::TextInput>(layout_.input_new_word_pos, layout_.input_size,
+                      font_manager_->getFont());
+    input_new_word_translation_ = std::make_unique<widgets::TextInput>(layout_.input_new_word_translation_pos,
+                                  layout_.input_size, font_manager_->getFont());
+    input_new_word_example_ = std::make_unique<widgets::TextInput>(layout_.input_new_word_example_pos, layout_.input_size,
+                              font_manager_->getFont());
+    text_box_word_statistics_ = std::make_unique<widgets::TextBox>(
           layout_.text_box_word_statistics_pos, layout_.text_box_word_statistics_size,
-          font_manager_->getFont(config_.kTextBoxWordStatisticsFontSize)}
-{
-    spdlog::info("MainWindow initialized with screen {}x{}", config_.kScreenWidth,
-                 config_.kScreenHeight);
+          font_manager_->getFont(config_.getValue<int>(kTextBoxWordStatisticsFontSize)));
 
     onLoadVocabulary();
 
@@ -85,112 +92,129 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary,
         stat.new_words_count);
 }
 
-MainWindow::Layout MainWindow::calculateLayout() const
+void MainWindow::calculateLayout()
 {
-    Layout layout;
-    layout.button_size = RVector2(static_cast<float>(config_.kButtonWidth),
-                                  static_cast<float>(config_.kButtonHeight));
-    layout.input_size = RVector2(static_cast<float>(config_.kButtonWidth),
-                                 static_cast<float>(config_.kButtonHeight));
-    layout.card_size = RVector2(static_cast<float>(config_.kScreenWidth - config_.kScreenMargin * 2),
-                                static_cast<float>(config_.kCardHeight/* config_.kScreenHeight - config_.kScreenMargin * 2 - config_.kButtonHeight */));
-    layout.element_margin = RVector2(static_cast<float>(config_.kElementMargin),
-                                static_cast<float>(config_.kElementMargin));
-    layout.text_box_word_statistics_size = RVector2(
-        static_cast<float>(config_.kTextBoxWordStatisticsWidth),
-        static_cast<float>(config_.kTextBoxWordStatisticsHeight));
+    // Layout layout;
+    layout_.button_size = RVector2(static_cast<float>(config_.getValue<int>(kButtonWidth)),
+                                  static_cast<float>(config_.getValue<int>(kButtonHeight)));
+    layout_.input_size = RVector2(static_cast<float>(config_.getValue<int>(kButtonWidth)),
+                                 static_cast<float>(config_.getValue<int>(kButtonHeight)));
+    layout_.card_size = RVector2(static_cast<float>(config_.getValue<int>(kWindowWidth) - config_.getValue<int>(kWindowMargin) * 2),
+                                static_cast<float>(config_.getValue<int>(kCardHeight)));
+    layout_.element_margin = RVector2(static_cast<float>(config_.getValue<int>(kElementMargin)),
+                                static_cast<float>(config_.getValue<int>(kElementMargin)));
+    layout_.text_box_word_statistics_size = RVector2(
+        static_cast<float>(config_.getValue<int>(kTextBoxWordStatisticsWidth)),
+        static_cast<float>(config_.getValue<int>(kTextBoxWordStatisticsHeight)));
 
-    layout.button_load_vocabulary_pos =
-        RVector2(static_cast<float>(config_.kScreenMargin + config_.kElementMargin),
-                 static_cast<float>(config_.kScreenMargin + config_.kElementMargin));
-    layout.button_save_vocabulary_pos =
-        RVector2(layout.button_load_vocabulary_pos.x + config_.kButtonWidth +
-                     config_.kScreenMargin + config_.kElementMargin,
-                 layout.button_load_vocabulary_pos.y);
-    layout.button_vocabulary_add_word_pos =
-        RVector2(layout.button_save_vocabulary_pos.x + config_.kButtonWidth +
-                     config_.kScreenMargin,
-                 layout.button_save_vocabulary_pos.y);
-    layout.button_add_word_to_batch_pos =
-        RVector2(static_cast<float>(config_.kScreenWidth - config_.kScreenMargin -
-                                    config_.kButtonWidth * 2 - config_.kElementMargin),
-                 static_cast<float>(config_.kScreenMargin));
-    layout.button_next_word_pos =
-        RVector2(layout.button_add_word_to_batch_pos.x + config_.kButtonWidth +
-                     config_.kElementMargin,
-                 layout.button_add_word_to_batch_pos.y);
-    layout.button_know_the_word_pos =
-        RVector2{layout.button_load_vocabulary_pos.GetX(),
-                 layout.button_load_vocabulary_pos.GetY() + layout.button_size.GetY() +
-                     layout.element_margin.GetY()};
-    layout.button_dont_know_the_word_pos =
-        RVector2{layout.button_next_word_pos.GetX(), layout.button_next_word_pos.GetY() +
-                                                         layout.button_size.GetY() +
-                                                         layout.element_margin.GetY()};
+    layout_.button_load_vocabulary_pos =
+        RVector2(static_cast<float>(config_.getValue<int>(kWindowMargin) + config_.getValue<int>(kElementMargin)),
+                 static_cast<float>(config_.getValue<int>(kWindowMargin) + config_.getValue<int>(kElementMargin)));
+    layout_.button_save_vocabulary_pos =
+        RVector2(layout_.button_load_vocabulary_pos.x + config_.getValue<int>(kButtonWidth) +
+                     config_.getValue<int>(kWindowMargin) + config_.getValue<int>(kElementMargin),
+                 layout_.button_load_vocabulary_pos.y);
+    layout_.button_vocabulary_add_word_pos =
+        RVector2(layout_.button_save_vocabulary_pos.x + config_.getValue<int>(kButtonWidth) +
+                     config_.getValue<int>(kWindowMargin),
+                 layout_.button_save_vocabulary_pos.y);
+    layout_.button_add_word_to_batch_pos =
+        RVector2(static_cast<float>(config_.getValue<int>(kWindowWidth) - config_.getValue<int>(kWindowMargin) -
+                                    config_.getValue<int>(kButtonWidth) * 2 - config_.getValue<int>(kElementMargin)),
+                 static_cast<float>(config_.getValue<int>(kWindowMargin)));
+    layout_.button_next_word_pos =
+        RVector2(layout_.button_add_word_to_batch_pos.x + config_.getValue<int>(kButtonWidth) +
+                     config_.getValue<int>(kElementMargin),
+                 layout_.button_add_word_to_batch_pos.y);
+    layout_.button_know_the_word_pos =
+        RVector2{layout_.button_load_vocabulary_pos.GetX(),
+                 layout_.button_load_vocabulary_pos.GetY() + layout_.button_size.GetY() +
+                     layout_.element_margin.GetY()};
+    layout_.button_dont_know_the_word_pos =
+        RVector2{layout_.button_next_word_pos.GetX(), layout_.button_next_word_pos.GetY() +
+                                                         layout_.button_size.GetY() +
+                                                         layout_.element_margin.GetY()};
 
-    layout.card_pos =
-        RVector2(static_cast<float>(config_.kScreenMargin + config_.kElementMargin),
-                 static_cast<float>(config_.kScreenMargin * 2 + config_.kButtonHeight));
+    layout_.card_pos =
+        RVector2(static_cast<float>(config_.getValue<int>(kWindowMargin) + config_.getValue<int>(kElementMargin)),
+                 static_cast<float>(config_.getValue<int>(kWindowMargin) * 2 + config_.getValue<int>(kButtonHeight)));
 
-    layout.input_new_word_pos = RVector2(
-        static_cast<float>(config_.kScreenMargin + config_.kElementMargin),
-        layout.card_pos.GetY() + layout.card_size.GetY() + config_.kElementMargin);
-    layout.input_new_word_translation_pos = RVector2(
-        layout.input_new_word_pos.x + config_.kButtonWidth + config_.kElementMargin,
-        layout.input_new_word_pos.y);
-    layout.input_new_word_example_pos = RVector2(
-        layout.input_new_word_translation_pos.x + config_.kButtonWidth + config_.kElementMargin,
-        layout.input_new_word_translation_pos.y);
+    layout_.input_new_word_pos = RVector2(
+        static_cast<float>(config_.getValue<int>(kWindowMargin) + config_.getValue<int>(kElementMargin)),
+        layout_.card_pos.GetY() + layout_.card_size.GetY() + config_.getValue<int>(kElementMargin));
+    layout_.input_new_word_translation_pos = RVector2(
+        layout_.input_new_word_pos.x + config_.getValue<int>(kButtonWidth) + config_.getValue<int>(kElementMargin),
+        layout_.input_new_word_pos.y);
+    layout_.input_new_word_example_pos = RVector2(
+        layout_.input_new_word_translation_pos.x + config_.getValue<int>(kButtonWidth) + config_.getValue<int>(kElementMargin),
+        layout_.input_new_word_translation_pos.y);
 
-    layout.text_box_word_statistics_pos = RVector2(
-        config_.kScreenWidth - config_.kScreenMargin - config_.kElementMargin - config_.kTextBoxWordStatisticsWidth,
-        layout.card_pos.GetY() + layout.card_size.GetY() + config_.kElementMargin);
+    layout_.text_box_word_statistics_pos = RVector2(
+        config_.getValue<int>(kWindowWidth) - config_.getValue<int>(kWindowMargin) - config_.getValue<int>(kElementMargin) - config_.getValue<int>(kTextBoxWordStatisticsWidth),
+        layout_.card_pos.GetY() + layout_.card_size.GetY() + config_.getValue<int>(kElementMargin));
 
-    return layout;
+    // return layout;
 }
 
 void MainWindow::draw()
 {
-    ClearBackground(config_.kBackgroundColor);
-    button_add_word_to_batch_.draw();
-    button_next_word_.draw();
-    button_load_vocabulary_.draw();
-    button_save_vocabulary_.draw();
-    button_vocabulary_add_word_.draw();
-    card_.draw();
-    button_know_the_word_.draw();
-    button_dont_know_the_word_.draw();
-    input_new_word_.draw();
-    input_new_word_translation_.draw();
-    input_new_word_example_.draw();
-    text_box_word_statistics_.draw();
+    BeginDrawing();
+
+    ClearBackground(RColor{config_.getValue<uint>(kBackgroundColor)});
+
+    button_add_word_to_batch_->draw();
+    button_next_word_->draw();
+    button_load_vocabulary_->draw();
+    button_save_vocabulary_->draw();
+    button_vocabulary_add_word_->draw();
+    card_->draw();
+    button_know_the_word_->draw();
+    button_dont_know_the_word_->draw();
+    input_new_word_->draw();
+    input_new_word_translation_->draw();
+    input_new_word_example_->draw();
+    text_box_word_statistics_->draw();
 
     if (!error_message_.empty()) {
-        ::DrawText(error_message_.c_str(), 10, config_.kScreenHeight - 20, 16, RColor::Red());
+        ::DrawText(error_message_.c_str(), 10, config_.getValue<int>(kWindowHeight) - 20, 16, RColor::Red());
     }
     else if (!status_message_.empty()) {
-        ::DrawText(status_message_.c_str(), 10, config_.kScreenHeight - 20, 16, RColor::Green());
+        ::DrawText(status_message_.c_str(), 10, config_.getValue<int>(kWindowHeight) - 20, 16, RColor::Green());
     }
 
-    RWindow::DrawFPS(10, 10);
+    // if constexpr (0/* kDebugBuild */) {
+    //     RWindow::DrawFPS(10, 10);
+    // }
+
+    EndDrawing();
 }
 
 void MainWindow::update(float dt)
 {
-    button_add_word_to_batch_.update(dt);
-    button_next_word_.update(dt);
-    button_know_the_word_.update(dt);
-    button_dont_know_the_word_.update(dt);
-    button_load_vocabulary_.update(dt);
-    button_save_vocabulary_.update(dt);
-    button_vocabulary_add_word_.update(dt);
-    input_new_word_.update(dt);
-    input_new_word_translation_.update(dt);
-    input_new_word_example_.update(dt);
+    // reload config by key combination (Ctrl + R)
+    if (IsKeyPressed(KEY_R) && IsKeyDown(KEY_LEFT_CONTROL)) {
+        config_.loadFromFile();
+        calculateLayout();
+    }
+
+    if (IsWindowResized()) {
+        calculateLayout();
+    }
+
+    button_add_word_to_batch_->update(dt);
+    button_next_word_->update(dt);
+    button_know_the_word_->update(dt);
+    button_dont_know_the_word_->update(dt);
+    button_load_vocabulary_->update(dt);
+    button_save_vocabulary_->update(dt);
+    button_vocabulary_add_word_->update(dt);
+    input_new_word_->update(dt);
+    input_new_word_translation_->update(dt);
+    input_new_word_example_->update(dt);
 
     if (!status_message_.empty() || !error_message_.empty()) {
         status_message_timer_ += dt;
-        if (status_message_timer_ >= config_.kStatusMessageTimer) {
+        if (status_message_timer_ >= config_.getValue<int>(kStatusMessageTimer)) {
             status_message_timer_ = 0;
             error_message_.clear();
             status_message_.clear();
@@ -221,11 +245,11 @@ std::shared_ptr<network::Request> MainWindow::createRequest(
     body["stream"] = false;
 
     auto http_request = std::make_shared<network::Request>();
-    http_request->host = config_.kDefaultServer;
-    http_request->port = config_.kDefaultPort;
-    http_request->target = config_.kDefaultTarget;
-    http_request->method = config_.kDefaultMethod;
-    http_request->headers = config_.kDefaultHeaders;
+    http_request->host = config_.getValue<std::string>(kDefaultServer);
+    http_request->port = config_.getValue<std::string>(kDefaultPort);
+    http_request->target = config_.getValue<std::string>(kDefaultTarget);
+    http_request->method = config_.getValue<std::string>(kDefaultMethod);
+    http_request->headers = kDefaultHeaders;
     http_request->body = body.empty() ? "" : body.dump();
     http_request->callback = callback;
 
@@ -257,6 +281,9 @@ void MainWindow::onAddWordToBatch()
                 showError("Batch is full");
             }
         }
+        else {
+            onNextWord();
+        }
     } else {
         showError("Vocabulary is not available");
     }
@@ -269,12 +296,12 @@ void MainWindow::onNextWord()
         if (auto word = word_.lock()) {
             updateWordStatisticsText();
             try {
-                card_.setWord(*word);
+                card_->setWord(*word);
             } catch (const VocabularyError& ex) {
                 showError(std::format("Failed to display word: {}", ex.what()));
             }
         } else {
-            card_.setWord({});
+            card_->setWord({});
             showError("No words available to learn");
         }
     } else {
@@ -307,7 +334,7 @@ void MainWindow::onLoadVocabulary()
     if (auto v = vocabulary_.lock()) {
         try {
             // v->importFromFile(config_.kVocabularyPathMd);
-            v->importFromJsonFile(config_.kVocabularyPathJson);
+            v->importFromJsonFile(config_.getValue<std::string>(kVocabularyPathJson));
             auto const msg{"vocabulary loaded successfully"};
             spdlog::info(msg);
             showStatus(msg);
@@ -331,7 +358,7 @@ void MainWindow::onSaveVocabulary()
             stat.new_words_count);
 
         try {
-            v->exportToJsonFile(config_.kVocabularyPathJson);
+            v->exportToJsonFile(config_.getValue<std::string>(kVocabularyPathJson));
             // v->exportToFile(config_.kVocabularyPathMd);
         } catch (const std::exception& ex) {
             spdlog::error("Failed to save vocabulary: {}", ex.what());
@@ -345,26 +372,26 @@ void MainWindow::onSaveVocabulary()
 void MainWindow::onAddWord()
 {
     if (auto voc = vocabulary_.lock()) {
-        if (input_new_word_.getText().empty()) {
+        if (input_new_word_->getText().empty()) {
             showError("Word cannot be empty");
             return;
         }
-        std::string translation = input_new_word_translation_.getText();
+        std::string translation = input_new_word_translation_->getText();
         if (translation.empty()) {
             if (auto client = http_client_.lock()) {
-                handleTranslationRequest(input_new_word_.getText());
+                handleTranslationRequest(input_new_word_->getText());
             } else {
                 showError("HTTP client is not available");
             }
         } else {
             try {
-                voc->addWord(input_new_word_.getText(),
+                voc->addWord(input_new_word_->getText(),
                              vocabulary::Translation::parse(translation));
-                spdlog::info("Word added: {} - {}", input_new_word_.getText(),
+                spdlog::info("Word added: {} - {}", input_new_word_->getText(),
                              translation);
-                input_new_word_.setText("");
-                input_new_word_translation_.setText("");
-                input_new_word_example_.setText("");
+                input_new_word_->setText("");
+                input_new_word_translation_->setText("");
+                input_new_word_example_->setText("");
             } catch (const std::exception& ex) {
                 spdlog::error("Error adding word: {}", ex.what());
                 showError("Failed to add word");
@@ -389,13 +416,13 @@ void MainWindow::handleTranslationRequest(const std::string& word)
             auto translation =
                 json_response["choices"][0]["message"]["content"].get<std::string>();
             if (auto v = vocabulary_.lock()) {
-                v->addWord(input_new_word_.getText(),
+                v->addWord(input_new_word_->getText(),
                            vocabulary::Translation::parse(translation));
-                spdlog::info("Word added: {} - {}", input_new_word_.getText(),
+                spdlog::info("Word added: {} - {}", input_new_word_->getText(),
                              translation);
-                input_new_word_.setText("");
-                input_new_word_translation_.setText("");
-                input_new_word_example_.setText("");
+                input_new_word_->setText("");
+                input_new_word_translation_->setText("");
+                input_new_word_example_->setText("");
             } else {
                 showError("Vocabulary is not available");
             }
@@ -418,7 +445,7 @@ void MainWindow::updateWordStatisticsText()
         return;
     }
 
-    text_box_word_statistics_.clear();
+    text_box_word_statistics_->clear();
 
     auto word = word_.lock();
 
@@ -426,13 +453,13 @@ void MainWindow::updateWordStatisticsText()
         std::format("\nImpressions: {} (known: {}, don't known: {})",
                     word->knowNumber() + word->dontKnowNumber(), word->knowNumber(),
                     word->dontKnowNumber())};
-    text_box_word_statistics_ << message_statistics_impressions;
-    text_box_word_statistics_.setAlignment(widgets::TextBox::Alignment::kRight);
+    *text_box_word_statistics_ << message_statistics_impressions;
+    text_box_word_statistics_->setAlignment(widgets::TextBox::Alignment::kRight);
 
     auto const message_statistics_retention_rate{
         std::format("\nRetention rate: {}", word->retentionRate())};
-    text_box_word_statistics_ << message_statistics_retention_rate;
-    text_box_word_statistics_.setAlignment(widgets::TextBox::Alignment::kRight);
+    *text_box_word_statistics_ << message_statistics_retention_rate;
+    text_box_word_statistics_->setAlignment(widgets::TextBox::Alignment::kRight);
 
     spdlog::trace("word \'{}\' statistics:{}{}",
                   word->word(), message_statistics_impressions,

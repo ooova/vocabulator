@@ -1,6 +1,7 @@
 #include "string_utils.h"
 
 #include <sstream>
+#include <algorithm>
 
 namespace tools::string_utils {
 
@@ -70,6 +71,13 @@ std::string codepoint_to_utf8(int codepoint) {
         result += static_cast<char>(0x80 | (codepoint & 0x3F));
     }
     return result;
+}
+
+std::string toLowerCase(const std::string& str)
+{
+    auto value_lower = str;
+    return std::transform(value_lower.begin(), value_lower.end(), value_lower.begin(),
+                          [](unsigned char c) { return std::tolower(c); }), value_lower;
 }
 
 }  // namespace tools::string_utils

@@ -6,7 +6,11 @@
 
 class GlobalError : public std::runtime_error {
 public:
-    GlobalError(std::string const& msg)
+    explicit GlobalError(std::string const& msg)
+        : std::runtime_error(msg)
+    {}
+
+    explicit GlobalError(char const* msg)
         : std::runtime_error(msg)
     {}
 };
