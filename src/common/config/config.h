@@ -10,34 +10,46 @@
 namespace common {
 
 enum class ConfigId {
-    // int ---------------
-    kWindowWidth, // {800};
-    kWindowHeight, // {450};
-    kWindowMargin, // {10};
-    kButtonWidth, // {100};
-    kButtonHeight, // {30};
-    kElementMargin, // {5};
-    kCardHeight, // {150};
-    kCardFontSize, // {28};
-    kTextBoxWordStatisticsFontSize, // {18};
-    kTextBoxWordStatisticsWidth, // {300};
-    kTextBoxWordStatisticsHeight, // {100};
-    kStatusMessageTimer, // {3};
+    // int ----------------------------------------------------------
+    // layout config ------------------------------------------------
+    kWindowWidth,
+    kWindowHeight,
+    kWindowMargin,
+    kButtonWidth,
+    kButtonHeight,
+    kButtonFontSize,
+    kElementMargin,
+    kCardWidth,
+    kCardHeight,
+    kCardFontSize,
+    kTextBoxVocabularyStatisticsWidth,
+    kTextBoxVocabularyStatisticsHeight,
+    kTextBoxVocabularyStatisticsFontSize,
+    kTextBoxWordStatisticsWidth,
+    kTextBoxWordStatisticsHeight,
+    kTextBoxWordStatisticsFontSize,
+    kStatusMessageTimer,
+    // vocabulary config --------------------------------------------
+    kRetentionRateForKnownWord,
 
-    // hex -------------
-    kBackgroundColor, // {0x181818};
+    // float ---------------------------------------------------------
+    // layout config ------------------------------------------------
+    kScaleFactor,
 
-    // string -------------
-    kFontPath, // {"../assets/fonts/Ubuntu-R.ttf"};
-    kVocabularyPathMd, // {"../assets/vocabulary.md"};
-    kVocabularyPathJson, // {"../assets/vocabulary.json"};
-    kDefaultServer, // {"localhost"};
-    kDefaultPort, // {"1234"};
-    kDefaultTarget, // {"/v1/chat/completions"};
-    kDefaultMethod, // {"POST"};
+    // hex ---------------------------------------------------------
+    kWindowBackgroundColor,
+
+    // string ------------------------------------------------------
+    kFontPath,
+    kVocabularyPathMd,
+    kVocabularyPathJson,
+    kDefaultServer,
+    kDefaultPort,
+    kDefaultTarget,
+    kDefaultMethod,
 
     // bool -------------
-    kWindowResizable, //{true};
+    kWindowResizable,
 };
 
 enum class ConfigType {
@@ -105,6 +117,8 @@ public:
     }
     void loadFromFile(std::filesystem::path const& file_path = {});
     void saveToFile(std::filesystem::path const& file_path = {}) const;
+
+    std::string toString() const;
 
 private:
     std::filesystem::path config_file_path_;

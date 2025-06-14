@@ -59,17 +59,14 @@ public:
     bool addUnknownWordToBatch();
     WordWeakPtr nextWordToLearnFromBatch();
     size_t batchSize() const { return batch_.size(); }
+    uint8_t targetRetentionRate() const;
 
 private:
     using Batch = std::deque<WordWeakPtr>;
 
     std::vector<std::shared_ptr<Word>> words_;
-    Batch batch_;
 
-    // for retention rate in percentage
-    // const uint8_t kRetentionRateForKnownWord{85};
-    // for retention rate as "know" - "don't know" difference
-    const uint8_t kRetentionRateForKnownWord{3};
+    Batch batch_;
 
     size_t next_word_index_{0};
     size_t next_word_to_added_to_batch_{0};

@@ -41,16 +41,20 @@ private:
     using enum common::ConfigId;
 
     struct Layout {
+        float scale_factor;
+        float window_margin;
+        float element_margin;
+
         RVector2 card_size;
         RVector2 button_size;
         RVector2 input_size;
-        RVector2 element_margin;
+        RVector2 text_box_vocabulary_statistics_size;
         RVector2 text_box_word_statistics_size;
 
         RVector2 button_load_vocabulary_pos;
         RVector2 button_save_vocabulary_pos;
-        RVector2 button_vocabulary_add_word_pos;
         RVector2 button_add_word_to_batch_pos;
+        RVector2 button_vocabulary_add_word_pos;
         RVector2 button_next_word_pos;
         RVector2 button_know_the_word_pos;
         RVector2 button_dont_know_the_word_pos;
@@ -58,6 +62,7 @@ private:
         RVector2 input_new_word_pos;
         RVector2 input_new_word_translation_pos;
         RVector2 input_new_word_example_pos;
+        RVector2 text_box_vocabulary_statistics_pos;
         RVector2 text_box_word_statistics_pos;
     };
 
@@ -84,6 +89,7 @@ private:
     std::unique_ptr<widgets::TextInput> input_new_word_translation_{nullptr};
     std::unique_ptr<widgets::TextInput> input_new_word_example_{nullptr};
     std::unique_ptr<widgets::TextBox> text_box_word_statistics_{nullptr};
+    std::unique_ptr<widgets::TextBox> text_box_vocabulary_statistics_{nullptr};
 
     std::string error_message_{};
     std::string status_message_{};
@@ -92,6 +98,8 @@ private:
 
     // methods
     void calculateLayout();
+    void createUiElements();
+    void updateUiElementsLayout();
 
     std::shared_ptr<network::Request> createRequest(
         const std::string& request,
@@ -110,8 +118,9 @@ private:
     void onAddWord();
     void handleTranslationRequest(const std::string& word);
 
-    // update word statistics text
+    // update statistics
     void updateWordStatisticsText();
+    void updateVocabularyStatisticsText();
 };
 
 }  // namespace ui

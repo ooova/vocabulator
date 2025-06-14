@@ -16,6 +16,7 @@ public:
     void update(float dt);
 
     void setWord(vocabulary::Word const& word);
+    void SetPosition(RVector2 const& position);
 
 private:
     TextBox text_box_;

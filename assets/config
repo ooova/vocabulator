@@ -1,2 +1,7 @@
-kWindowWidth = 900
-kWindowHeight = 600
+kWindowWidth = 800
+kWindowHeight = 500
+kWindowBackgroundColor = 0x22222200
+kCardHeight = 200
+kTextBoxWordStatisticsHeight = 50
+kTextBoxVocabularyStatisticsFontSize = 20
+kTextBoxWordStatisticsFontSize = 20

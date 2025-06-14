@@ -30,7 +30,13 @@ void Card::setWord(vocabulary::Word const& word)
     }
 }
 
-void Card::update(float dt) {
+void Card::SetPosition(RVector2 const& position)
+{
+    text_box_.SetPosition(position);
+}
+
+void Card::update(float dt)
+{
     ;
 }
 

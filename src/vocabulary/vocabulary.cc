@@ -1,5 +1,8 @@
 #include "vocabulary.h"
 
+#include "common/config/config.h"
+#include "tools/random_number.h"
+
 #include <array>
 #include <format>
 #include <fstream>
@@ -10,7 +13,8 @@
 #include <stdexcept>
 
 #include "spdlog/spdlog.h"
-#include "tools/random_number.h"
+
+const auto kRetentionRateForKnownWord{common::Config::instance().getValue<int>(common::ConfigId::kRetentionRateForKnownWord)};
 
 namespace vocabulary {
 
@@ -269,6 +273,13 @@ bool Vocabulary::addWordToBatch(std::string_view const word)
 
     return true;
 }
+
+uint8_t Vocabulary::targetRetentionRate() const
+{
+    return kRetentionRateForKnownWord;
+}
+
+// ================================================================
 
 void to_json(nlohmann::json& j, std::vector<std::shared_ptr<Word>> const& words)
 {
