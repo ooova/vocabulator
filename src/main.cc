@@ -1,8 +1,9 @@
 #include "spdlog/spdlog.h"
 
+#include "common/config/config.h"
 #include "network/http/client/nttp_client.h"
 #include "ui/main-window.h"
-#include "common/config/config.h"
+#include "vocabulary/vocabulary.h"
 
 using namespace std::literals;
 

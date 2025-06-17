@@ -1,20 +1,30 @@
 #ifndef UI_WIDGETS_TEXT_INPUT_H
 #define UI_WIDGETS_TEXT_INPUT_H
 
+#include "ui/widgets/widget.h"
+
 #include "raylib-cpp.hpp"
+
 #include <string>
 
-namespace ui::widgets {
+namespace ui {
 
-class TextInput : public RRectangle {
+namespace events {
+    struct KeyboardEvent;
+    struct MouseEvent;
+} // namespace events
+
+namespace widgets {
+
+class TextInput : public Widget {
 public:
     TextInput(RVector2 position, RVector2 size, RFont&& font,
               RColor text_color = RColor::Black(), RColor background_color = RColor::White(),
               RColor cursor_color = RColor::Black());
 
-    void update(float dt);
+    void draw() const override;
 
-    void draw();
+    void update(float dt) override;
 
     std::string getText() const { return text_; }
     void setText(const std::string& text) { text_ = text; cursor_pos_ = text.size(); }
@@ -38,8 +48,13 @@ private:
 
     size_t prev_char_pos(size_t pos) const;
     size_t next_char_pos(size_t pos) const;
+
+    void handleKeyboardEvent(ui::events::KeyboardEvent const& event);
+    void handleMouseEvent(ui::events::MouseEvent const& event);
 };
 
-}  // namespace ui::widgets
+}  // namespace widgets
+
+}  // namespace ui
 
 #endif  // UI_WIDGETS_TEXT_INPUT_H

@@ -10,6 +10,11 @@
 #include "network/http/client/nttp_client.h"
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
+
+#include "common/events/event_dispatcher.h"
+#include "ui/events/keyboard_event.h"
+#include "ui/events/mouse_events.h"
+#include "ui/events/text_input_event.h"
 #include "ui/tools/font-manager.h"
 #include "ui/tools/locale.h"
 #include "vocabulary/translation.h"
@@ -38,6 +43,7 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary,
                                            tools::Language::kSpecSymbols}))
     , vocabulary_{vocabulary}
     , http_client_{http_client}
+    , event_dispatcher_{common::EventDispatcher::instance()}
 {
     spdlog::info("MainWindow initialized with screen {}x{}", config_.getValue<int>(kWindowWidth), config_.getValue<int>(kWindowHeight));
 
@@ -48,6 +54,12 @@ MainWindow::MainWindow(std::weak_ptr<vocabulary::Vocabulary> vocabulary,
     createUiElements();
 
     onLoadVocabulary();
+
+    // subscribe to text input events (add word)
+    event_dispatcher_.subscribe<events::TextInputEvent>(
+        [this](events::TextInputEvent const& event) {
+            onAddWord();
+        });
 
     auto const& stat = vocabulary_.lock()->getStatistic();
     spdlog::info("vocabulary statistics:\nwords count: {}; known words count: {}; in progress words count: {}; new words count: {};",
@@ -182,7 +194,7 @@ void MainWindow::createUiElements()
                               RVector2{layout_.button_size.GetX(), layout_.button_size.GetY() * 1.5f},
                               ui::tools::Locale::translateInterface("Save\nvocabulary"),
                               [this] { onSaveVocabulary(); }, font_manager_->getFont());
-    button_vocabulary_add_word_ = std::make_unique<widgets::Button>(layout_.button_vocabulary_add_word_pos,
+    button_add_word_to_vocabulary_ = std::make_unique<widgets::Button>(layout_.button_vocabulary_add_word_pos,
                                   layout_.button_size,
                                   ui::tools::Locale::translateInterface("add word"),
                                   [this] { onAddWord(); }, font_manager_->getFont());
@@ -199,25 +211,50 @@ void MainWindow::createUiElements()
           layout_.text_box_word_statistics_pos, layout_.text_box_word_statistics_size,
           font_manager_->getFont(config_.getValue<int>(kTextBoxWordStatisticsFontSize)));
     text_box_vocabulary_statistics_ = std::make_unique<widgets::TextBox>(
-          layout_.text_box_vocabulary_statistics_pos, layout_.text_box_word_statistics_size,
+          layout_.text_box_vocabulary_statistics_pos, layout_.text_box_vocabulary_statistics_size,
           font_manager_->getFont(config_.getValue<int>(kTextBoxVocabularyStatisticsFontSize)));
 }
 
 void MainWindow::updateUiElementsLayout()
 {
     button_add_word_to_batch_->SetPosition(layout_.button_add_word_to_batch_pos);
+    button_add_word_to_batch_->SetSize(layout_.button_size);
+
     button_next_word_->SetPosition(layout_.button_next_word_pos);
+    button_next_word_->SetSize(layout_.button_size);
+
     button_know_the_word_->SetPosition(layout_.button_know_the_word_pos);
+    button_know_the_word_->SetSize(layout_.button_size);
+
     button_dont_know_the_word_->SetPosition(layout_.button_dont_know_the_word_pos);
+    button_dont_know_the_word_->SetSize(layout_.button_size);
+
     button_load_vocabulary_->SetPosition(layout_.button_load_vocabulary_pos);
+    button_load_vocabulary_->SetSize(RVector2{layout_.button_size.GetX(), layout_.button_size.GetY() * 1.5f});
+
     button_save_vocabulary_->SetPosition(layout_.button_save_vocabulary_pos);
-    button_vocabulary_add_word_->SetPosition(layout_.button_vocabulary_add_word_pos);
+    button_save_vocabulary_->SetSize(RVector2{layout_.button_size.GetX(), layout_.button_size.GetY() * 1.5f});
+
+    button_add_word_to_vocabulary_->SetPosition(layout_.button_vocabulary_add_word_pos);
+    button_add_word_to_vocabulary_->SetSize(layout_.button_size);
+
     card_->SetPosition(layout_.card_pos);
+    card_->SetSize(layout_.card_size);
+
     input_new_word_->SetPosition(layout_.input_new_word_pos);
+    input_new_word_->SetSize(layout_.input_size);
+
     input_new_word_translation_->SetPosition(layout_.input_new_word_translation_pos);
+    input_new_word_translation_->SetSize(layout_.input_size);
+
     input_new_word_example_->SetPosition(layout_.input_new_word_example_pos);
+    input_new_word_example_->SetSize(RVector2{layout_.input_size.GetX() * 3.0f, layout_.input_size.GetY()});
+
     text_box_word_statistics_->SetPosition(layout_.text_box_word_statistics_pos);
+    text_box_word_statistics_->SetSize(layout_.text_box_word_statistics_size);
+
     text_box_vocabulary_statistics_->SetPosition(layout_.text_box_vocabulary_statistics_pos);
+    text_box_vocabulary_statistics_->SetSize(layout_.text_box_vocabulary_statistics_size);
 }
 
 void MainWindow::draw()
@@ -230,7 +267,7 @@ void MainWindow::draw()
     button_next_word_->draw();
     button_load_vocabulary_->draw();
     button_save_vocabulary_->draw();
-    button_vocabulary_add_word_->draw();
+    button_add_word_to_vocabulary_->draw();
     card_->draw();
     button_know_the_word_->draw();
     button_dont_know_the_word_->draw();
@@ -256,8 +293,33 @@ void MainWindow::draw()
 
 void MainWindow::update(float dt)
 {
+    // mouse events
+    auto button = ui::events::MouseEvent::Button::kNone;
+    if (RMouse::IsButtonPressed(MOUSE_BUTTON_LEFT)) {
+        button = ui::events::MouseEvent::Button::kLeft;
+    }
+    else if (RMouse::IsButtonPressed(MOUSE_BUTTON_RIGHT)) {
+        button = ui::events::MouseEvent::Button::kRight;
+    }
+    else if (RMouse::IsButtonPressed(MOUSE_BUTTON_MIDDLE)) {
+        button = ui::events::MouseEvent::Button::kMiddle;
+    }
+    ui::events::MouseEvent const mouse_event{
+        .x = RMouse::GetPosition().GetX(),
+        .y = RMouse::GetPosition().GetY(),
+        .button = button
+    };
+    event_dispatcher_.dispatch(mouse_event);
+
+    // keyboard events
+    auto codepoints = std::vector<int>{};
+    while (auto codepoint = RKeyboard::GetCharPressed()) {
+        codepoints.push_back(codepoint);
+    }
+    event_dispatcher_.dispatch(events::KeyboardEvent{ .key = RKeyboard::GetKeyPressed(), .codepoints = codepoints });
+
     // reload config by key combination (Ctrl + R)
-    if (IsKeyPressed(KEY_R) && IsKeyDown(KEY_LEFT_CONTROL)) {
+    if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_R)) {
         config_.loadFromFile();
         calculateLayout();
         updateUiElementsLayout();
@@ -274,7 +336,7 @@ void MainWindow::update(float dt)
     button_dont_know_the_word_->update(dt);
     button_load_vocabulary_->update(dt);
     button_save_vocabulary_->update(dt);
-    button_vocabulary_add_word_->update(dt);
+    button_add_word_to_vocabulary_->update(dt);
     input_new_word_->update(dt);
     input_new_word_translation_->update(dt);
     input_new_word_example_->update(dt);
@@ -343,10 +405,12 @@ void MainWindow::onAddWordToBatch()
 {
     if (auto v = vocabulary_.lock()) {
         if (!v->addUnknownWordToBatch()) {
-            spdlog::warn("Cannot add word to batch");
+            auto message = std::format("Cannot add word to batch");
+            spdlog::warn(message);
             if (v->batchSize() >= vocabulary::Vocabulary::kMaxWordsToLearn) {
-                showError("Batch is full");
+                message = std::format("{}: {}", message, "Batch is full");
             }
+            showError(message);
         }
         else {
             onNextWord();
@@ -518,7 +582,7 @@ void MainWindow::updateWordStatisticsText()
     auto word = word_.lock();
 
     auto const message_statistics_impressions{
-        std::format("Word statistics: known - {}, don't known - {}",
+        std::format("Word statistics: \'know\' - {}, \'don't know\' - {}",
                     word->knowNumber(), word->dontKnowNumber())};
     *text_box_word_statistics_ << message_statistics_impressions;
     text_box_word_statistics_->setAlignment(widgets::TextBox::Alignment::kRight);
@@ -543,12 +607,10 @@ void MainWindow::updateVocabularyStatisticsText()
         return;
     }
 
-    text_box_vocabulary_statistics_->clear();
-
     auto vocabulary = vocabulary_.lock();
 
     auto const message_statistics{
-        std::format("\nVocabulary statistic:\n"
+        std::format("Vocabulary statistic:\n"
                    "words in vocabulary - {}\n"
                    "in progress - {}\n"
                    "to learn - {}\n"
@@ -557,7 +619,8 @@ void MainWindow::updateVocabularyStatisticsText()
                    vocabulary->getStatistic().in_progress_words_count,
                    vocabulary->getStatistic().new_words_count,
                    vocabulary->getStatistic().known_words_count)};
-    *text_box_vocabulary_statistics_ << message_statistics;
+
+    text_box_vocabulary_statistics_->setText(message_statistics);
     text_box_vocabulary_statistics_->setAlignment(widgets::TextBox::Alignment::kLeft);
 
     spdlog::trace("vocabulary statistics: {}", message_statistics);

@@ -1,76 +1,34 @@
 #include "text-input.h"
 
+#include "common/events/event_dispatcher.h"
 #include "tools/string_utils.h"
+#include "ui/events/mouse_events.h"
+#include "ui/events/keyboard_event.h"
+#include "ui/events/text_input_event.h"
 
 namespace ui::widgets {
 
 TextInput::TextInput(RVector2 position, RVector2 size, RFont&& font,
                      RColor text_color, RColor background_color, RColor cursor_color)
-    : RRectangle(position.GetX(), position.GetY(), size.GetX(), size.GetY())
+    : Widget(position, size)
     , text_offset_x_{position.GetX()}
     , font_{std::move(font)}
     , text_color_{text_color}
     , background_color_{background_color}
     , cursor_color_{cursor_color}
 {
+    auto& event_dispatcher = common::EventDispatcher::instance();
+    event_dispatcher.subscribe<events::KeyboardEvent>(
+        [this](events::KeyboardEvent const& event) {
+            this->handleKeyboardEvent(event);
+        });
+    event_dispatcher.subscribe<events::MouseEvent>(
+        [this](events::MouseEvent const& event) {
+            this->handleMouseEvent(event);
+        });
 }
 
 void TextInput::update(float dt) {
-    if (::IsMouseButtonPressed(::MOUSE_BUTTON_LEFT)) {
-        in_focus_ = CheckCollision(::GetMousePosition());
-    }
-
-    if (in_focus_) {
-
-        int codepoint;
-        while ((codepoint = GetCharPressed()) != 0) {
-            std::string char_str = tools::string_utils::codepoint_to_utf8(codepoint);
-            text_.insert(cursor_pos_, char_str);
-            cursor_pos_ += char_str.size();
-        }
-
-        const auto key_pressed = GetKeyPressed();
-        switch (key_pressed) {
-            case KEY_BACKSPACE:
-                if (cursor_pos_ > 0) {
-                    size_t prev_pos = prev_char_pos(cursor_pos_);
-                    text_.erase(prev_pos, cursor_pos_ - prev_pos);
-                    cursor_pos_ = prev_pos;
-                }
-                break;
-            case KEY_DELETE:
-                if (cursor_pos_ < text_.size()) {
-                    size_t next_pos = next_char_pos(cursor_pos_);
-                    text_.erase(cursor_pos_, next_pos - cursor_pos_);
-                }
-                break;
-            case KEY_LEFT:
-                if (cursor_pos_ > 0) {
-                    cursor_pos_ = prev_char_pos(cursor_pos_);
-                }
-                break;
-            case KEY_RIGHT:
-                if (cursor_pos_ < text_.size()) {
-                    cursor_pos_ = next_char_pos(cursor_pos_);
-                }
-                break;
-            case KEY_HOME:
-                cursor_pos_ = 0;
-                break;
-            case KEY_END:
-                cursor_pos_ = text_.size();
-                break;
-        }
-    }
-
-    auto text_size = font_.MeasureText(text_.substr(0, cursor_pos_).c_str(), font_size_, spacing_);
-
-    auto const spacing = spacing_ * 2;
-    text_offset_x_ = GetX() + spacing;
-    if (GetWidth() <= text_size.x) {
-        text_offset_x_ = GetWidth() - text_size.x - spacing + GetX();
-    }
-
     cursor_timer_ += dt;
     if (cursor_timer_ >= 0.5f) {
         cursor_visible_ = !cursor_visible_;
@@ -78,7 +36,8 @@ void TextInput::update(float dt) {
     }
 }
 
-void TextInput::draw() {
+void TextInput::draw() const 
+{
     const auto text_top_margin = spacing_ * 3;
     Draw(background_color_);
 
@@ -113,6 +72,70 @@ size_t TextInput::next_char_pos(size_t pos) const {
         pos++;
     }
     return pos;
+}
+
+// private ------------------------------------------------------------
+
+void TextInput::handleKeyboardEvent(events::KeyboardEvent const& event)
+{
+    if (in_focus_) {
+        
+        for (auto const& codepoint : event.codepoints) {
+            std::string char_str = tools::string_utils::codepoint_to_utf8(codepoint);
+            text_.insert(cursor_pos_, char_str);
+            cursor_pos_ += char_str.size();
+        }
+
+        switch (event.key) {
+            case KEY_BACKSPACE:
+                if (cursor_pos_ > 0) {
+                    size_t prev_pos = prev_char_pos(cursor_pos_);
+                    text_.erase(prev_pos, cursor_pos_ - prev_pos);
+                    cursor_pos_ = prev_pos;
+                }
+                break;
+            case KEY_DELETE:
+                if (cursor_pos_ < text_.size()) {
+                    size_t next_pos = next_char_pos(cursor_pos_);
+                    text_.erase(cursor_pos_, next_pos - cursor_pos_);
+                }
+                break;
+            case KEY_LEFT:
+                if (cursor_pos_ > 0) {
+                    cursor_pos_ = prev_char_pos(cursor_pos_);
+                }
+                break;
+            case KEY_RIGHT:
+                if (cursor_pos_ < text_.size()) {
+                    cursor_pos_ = next_char_pos(cursor_pos_);
+                }
+                break;
+            case KEY_HOME:
+                cursor_pos_ = 0;
+                break;
+            case KEY_END:
+                cursor_pos_ = text_.size();
+                break;
+            case KEY_ENTER:
+                common::EventDispatcher::instance().dispatch(events::TextInputEvent{.text = text_});
+                break;
+        }
+    }
+
+    auto text_size = font_.MeasureText(text_.substr(0, cursor_pos_).c_str(), font_size_, spacing_);
+
+    auto const spacing = spacing_ * 2;
+    text_offset_x_ = GetX() + spacing;
+    if (GetWidth() <= text_size.x) {
+        text_offset_x_ = GetWidth() - text_size.x - spacing + GetX();
+    }
+}
+
+void TextInput::handleMouseEvent(events::MouseEvent const& event)
+{
+    if (event.button == events::MouseEvent::Button::kLeft) {
+        in_focus_ = CheckCollision(RVector2{event.x, event.y});
+    }
 }
 
 }  // namespace ui::widgets

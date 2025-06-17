@@ -163,7 +163,7 @@ bool Vocabulary::addUnknownWordToBatch()
     // let's mark it as "unknown" by pressing "don't know" button :)
     w.lock()->dontKnow();
 
-    batch_.push_back(w);
+    batch_.push_front(w);
     return true;
 }
 

@@ -2,6 +2,7 @@
 #define UI_MAIN_WINDOW_H
 
 #include "common/config/config.h"
+#include "common/events/event_dispatcher.h"
 #include "network/http/request.h"
 #include "ui/tools/font-manager.h"
 #include "ui/widgets/button.h"
@@ -83,7 +84,7 @@ private:
     std::unique_ptr<widgets::Button> button_dont_know_the_word_{nullptr};
     std::unique_ptr<widgets::Button> button_load_vocabulary_{nullptr};
     std::unique_ptr<widgets::Button> button_save_vocabulary_{nullptr};
-    std::unique_ptr<widgets::Button> button_vocabulary_add_word_{nullptr};
+    std::unique_ptr<widgets::Button> button_add_word_to_vocabulary_{nullptr};
     std::unique_ptr<widgets::Card> card_{nullptr};
     std::unique_ptr<widgets::TextInput> input_new_word_{nullptr};
     std::unique_ptr<widgets::TextInput> input_new_word_translation_{nullptr};
@@ -96,7 +97,9 @@ private:
 
     float status_message_timer_{};
 
-    // methods
+    common::EventDispatcher& event_dispatcher_;
+
+    // methods ------------------------------------------------------------
     void calculateLayout();
     void createUiElements();
     void updateUiElementsLayout();

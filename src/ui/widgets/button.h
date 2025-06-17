@@ -1,45 +1,51 @@
 #ifndef UI_WIDGETS_BUTTON_H
 #define UI_WIDGETS_BUTTON_H
 
-#include <chrono>
-#include <functional>
-// #include <memory>
-#include <string_view>
-#include <thread>
+#include "ui/widgets/widget.h"
 
 #include "raylib-cpp.hpp"
 #include "spdlog/spdlog.h"
-#include "tools/scoped_async_wrapper.h"
-#include "ui/events/event.h"
 
-namespace ui::widgets {
+#include <chrono>
+#include <functional>
+#include <string_view>
+#include <thread>
+#include <atomic>
 
-class Button : public RRectangle {
+namespace ui {
+
+namespace events {
+    struct MouseEvent;
+} // namespace events
+
+namespace widgets {
+
+class Button : public Widget {
 public:
-    // using ClickCallback = void (*)(void);
     using ClickCallback = std::function<void(void)>;
 
-    Button(RVector2 position, RVector2 size, std::string_view const text,
+    Button(RVector2 position, RVector2 size, std::string_view const text, 
            ClickCallback clickCallback, RFont&& font = {}, RColor color = RColor::Gray());
 
-    ~Button();
+    ~Button() = default;
 
     void setText(std::string_view const text);
 
-    void draw() const;
+    void draw() const override;
 
-    void update(float dt);
+    void update(float dt) override;
 
 private:
-    std::chrono::milliseconds const kPollingSleepTimeMS{100};
-
     RFont const font_{};
     RColor const button_color_{};
     RText text_{};
     ClickCallback clickCallback_{};
-    std::atomic_bool stop_{false};
+
+    void handleMouseEvent(events::MouseEvent const& event);
 };
 
-}  // namespace ui::widgets
+}  // namespace widgets
+
+}  // namespace ui
 
 #endif  // UI_WIDGETS_BUTTON_H

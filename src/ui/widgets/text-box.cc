@@ -6,7 +6,7 @@ namespace ui::widgets {
 
 TextBox::TextBox(RVector2 position, RVector2 size, RFont&& font,
                  RColor textColor, RColor backgroundColor)
-    : RRectangle(position.GetX(), position.GetY(), size.GetX(), size.GetY())
+    : Widget(position, size)
     , font_{std::move(font)}
     , textColor_{textColor}
     , backgroundColor_{backgroundColor}
@@ -20,17 +20,55 @@ TextBox& TextBox::operator<<(std::string_view text)
         if (text_.empty()) {
             addParagraph();
         }
-        for (const auto ch : text) {
-            if (ch == '\n') {
+
+        const auto* it = text.data();
+        const auto* end = text.data() + text.size();
+        
+        while (it != end) {
+            if (*it == '\n') {
                 addParagraph();
+                ++it;
                 continue;
             }
+            // check if the current paragraph overflows the text box and add a new paragraph if it does
             if (text_.back().first.MeasureEx().GetX() > (RRectangle::GetWidth() - font_.GetBaseSize())) {
                 addParagraph();
             }
-            text_.back().first.text += ch;
+            auto& current_paragraph = text_.back().first.text;
+            // Get the next UTF-8 character
+            auto c = static_cast<unsigned char>(*it);
+            if (c < 0x80) {
+                // ASCII character
+                current_paragraph.push_back(c);
+                ++it;
+            } else if (c < 0xE0) {
+                // 2-byte UTF-8
+                if (end - it < 2) break;
+                current_paragraph.push_back(*it);
+                current_paragraph.push_back(*(it + 1));
+                it += 2;
+            } else if (c < 0xF0) {
+                // 3-byte UTF-8
+                if (end - it < 3) break;
+                current_paragraph.push_back(*it);
+                current_paragraph.push_back(*(it + 1));
+                current_paragraph.push_back(*(it + 2));
+                it += 3;
+            } else if (c < 0xF8) {
+                // 4-byte UTF-8
+                if (end - it < 4) break;
+                current_paragraph.push_back(*it);
+                current_paragraph.push_back(*(it + 1));
+                current_paragraph.push_back(*(it + 2));
+                current_paragraph.push_back(*(it + 3));
+                it += 4;
+            } else {
+                // Invalid UTF-8 sequence
+                ++it;
+            }
         }
     }
+
     return *this;
 }
 
@@ -42,18 +80,11 @@ void TextBox::setText(std::string_view const& text)
 
 void TextBox::setAlignment(Alignment alignment) { text_.back().second = alignment; }
 
-// void setFont(std::string_view const font_file_path) {
-//     spdlog::info("Font {} loaded", font_file_path);
-//     std::for_each(text_.begin(), text_.end(), [this](auto& paragraph){
-//         ::UnloadFont(paragraph.font);
-//         paragraph.font = font_;
-//     });
-// }
-
-void TextBox::draw()
+void TextBox::draw() const
 {
     RRectangle::Draw(backgroundColor_);
     RVector2 position = RRectangle::GetPosition();
+
     for (const auto& paragraph : text_) {
         auto paragraph_size{paragraph.first.MeasureEx()};
         switch (paragraph.second) {
@@ -73,8 +104,8 @@ void TextBox::draw()
         }
         paragraph.first.Draw(position);
         position.SetY(position.GetY() + paragraph_size.GetY());
-        if (position.GetY() >
-            RRectangle::GetPosition().GetY() + RRectangle::GetSize().GetY()) {
+        const auto text_box_bottom_position = Widget::Rectangle::GetPosition().GetY() + GetSize().GetY();
+        if (position.GetY() > (text_box_bottom_position)) {
             break;
         }
     }

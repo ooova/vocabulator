@@ -5,34 +5,34 @@
 namespace ui::widgets {
 
 Card::Card(RVector2 position, RVector2 size, vocabulary::Word const& word, RFont&& font)
-    : text_box_{position, size, std::move(font)}
+    : TextBox(position, size, std::move(font))
 {
     // setWord(word);
 }
 
-void Card::draw() { text_box_.draw(); }
+void Card::draw() const { TextBox::draw(); }
 
 void Card::setWord(vocabulary::Word const& word)
 {
-    text_box_.clear();
-    text_box_ << word.word();
-    text_box_.setAlignment(TextBox::Alignment::kCenter);
-    text_box_ << "\n----";
-    text_box_.setAlignment(TextBox::Alignment::kCenter);
-    text_box_ << "\n";
-    text_box_ << word.translation().variantsToString();
-    text_box_.setAlignment(TextBox::Alignment::kCenter);
+    clear();
+    operator<<(word.word());
+    setAlignment(TextBox::Alignment::kCenter);
+    operator<<("\n----");
+    setAlignment(TextBox::Alignment::kCenter);
+    operator<<("\n");
+    operator<<(word.translation().variantsToString());
+    setAlignment(TextBox::Alignment::kCenter);
     if (!word.translation().examples().empty()) {
-        text_box_ << "\n(";
-        text_box_ << word.translation().examplesToString();
-        text_box_ << ")";
-        text_box_.setAlignment(TextBox::Alignment::kCenter);
+        operator<<("\n(");
+        operator<<(word.translation().examplesToString());
+        operator<<(")");
+        setAlignment(TextBox::Alignment::kCenter);
     }
 }
 
-void Card::SetPosition(RVector2 const& position)
+void Card::setPosition(RVector2 const& position)
 {
-    text_box_.SetPosition(position);
+    TextBox::setPosition(position);
 }
 
 void Card::update(float dt)

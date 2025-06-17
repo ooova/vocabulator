@@ -1,13 +1,15 @@
 #ifndef UI_WIDGETS_TEXT_BOX_H
 #define UI_WIDGETS_TEXT_BOX_H
 
-#include <string_view>
+#include "ui/widgets/widget.h"
 
 #include "raylib-cpp.hpp"
 
+#include <string_view>
+
 namespace ui::widgets {
 
-class TextBox : public RRectangle {
+class TextBox : public Widget {
 public:
     enum class Alignment {
         kLeft,
@@ -27,12 +29,22 @@ public:
     void setAlignment(Alignment alignment);
 
     void setTextColor(RColor const& color) { textColor_ = color; }
+    RColor getTextColor() const { return textColor_; }
 
-    void setFontSize(int font_size);
+    void setBackgroundColor(RColor const& color) { backgroundColor_ = color; }
+    RColor getBackgroundColor() const { return backgroundColor_; }
 
-    virtual void draw();
+    std::string getText() const {
+        std::string result;
+        for (const auto& paragraph : text_) {
+            result += paragraph.first.text;
+        }
+        return result;
+    }
 
-    void update(float dt);
+    void draw() const override;
+
+    void update(float dt) override;
 
 protected:
     std::vector<std::pair<RText, Alignment>> text_{};

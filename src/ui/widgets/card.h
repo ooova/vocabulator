@@ -1,25 +1,23 @@
 #ifndef UI_WIDGETS_CARD_H
 #define UI_WIDGETS_CARD_H
 
+#include "ui/widgets/widget.h"
 #include "ui/widgets/text-box.h"
-#include "vocabulary/vocabulary.h"
+#include "vocabulary/word.h"
 
 #include "raylib-cpp.hpp"
 
 namespace ui::widgets {
 
-class Card {
+class Card : public TextBox {
 public:
     Card(RVector2 position, RVector2 size, vocabulary::Word const& word, RFont&& font = {});
 
-    void draw();
-    void update(float dt);
+    void draw() const override;
+    void update(float dt) override;
 
     void setWord(vocabulary::Word const& word);
-    void SetPosition(RVector2 const& position);
-
-private:
-    TextBox text_box_;
+    void setPosition(RVector2 const& position) override;
 };
 
 } // namespace ui::widgets
