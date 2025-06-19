@@ -200,13 +200,13 @@ void MainWindow::createUiElements()
                                   [this] { onAddWord(); }, font_manager_->getFont());
     card_ = std::make_unique<widgets::Card>(layout_.card_pos, layout_.card_size, vocabulary::Word(), font_manager_->getFont(config_.getValue<int>(kCardFontSize)));
     input_new_word_ = std::make_unique<widgets::TextInput>(layout_.input_new_word_pos, layout_.input_size,
-                      font_manager_->getFont());
+                      font_manager_->getFont(config_.getValue<int>(kInputFontSize)));
     input_new_word_translation_ = std::make_unique<widgets::TextInput>(layout_.input_new_word_translation_pos,
-                                  layout_.input_size, font_manager_->getFont());
+                                  layout_.input_size, font_manager_->getFont(config_.getValue<int>(kInputFontSize)));
     input_new_word_example_ = std::make_unique<widgets::TextInput>(
         layout_.input_new_word_example_pos,
         RVector2{layout_.input_size.GetX() * 3.0f, layout_.input_size.GetY()},
-        font_manager_->getFont());
+        font_manager_->getFont(config_.getValue<int>(kInputFontSize)));
     text_box_word_statistics_ = std::make_unique<widgets::TextBox>(
           layout_.text_box_word_statistics_pos, layout_.text_box_word_statistics_size,
           font_manager_->getFont(config_.getValue<int>(kTextBoxWordStatisticsFontSize)));

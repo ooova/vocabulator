@@ -11,11 +11,12 @@ namespace ui::widgets {
 TextInput::TextInput(RVector2 position, RVector2 size, RFont&& font,
                      RColor text_color, RColor background_color, RColor cursor_color)
     : Widget(position, size)
-    , text_offset_x_{position.GetX()}
     , font_{std::move(font)}
     , text_color_{text_color}
     , background_color_{background_color}
     , cursor_color_{cursor_color}
+    , font_size_{font_.GetBaseSize()}
+    , text_offset_x_{position.GetX()}
 {
     auto& event_dispatcher = common::EventDispatcher::instance();
     event_dispatcher.subscribe<events::KeyboardEvent>(
@@ -38,17 +39,18 @@ void TextInput::update(float dt) {
 
 void TextInput::draw() const 
 {
-    const auto text_top_margin = spacing_ * 3;
+    const auto text_size = font_.MeasureText(text_.c_str(), font_size_, spacing_);
+    const auto text_y_pos = GetY() + (GetHeight() - text_size.GetY()) / 2;
     Draw(background_color_);
 
     ::BeginScissorMode(GetX(), GetY(), GetWidth(), GetHeight());
-    font_.DrawText(text_.c_str(), {text_offset_x_, GetY() + text_top_margin}, font_size_, spacing_, text_color_);
+    font_.DrawText(text_.c_str(), {text_offset_x_, text_y_pos}, font_size_, spacing_, text_color_);
     ::EndScissorMode();
 
     if (in_focus_ && cursor_visible_) {
         auto text_size = font_.MeasureText(text_.substr(0, cursor_pos_).c_str(), font_size_, spacing_);
         auto cursor_screen_x = text_offset_x_ + text_size.x;
-        ::DrawLine(cursor_screen_x, GetY() + text_top_margin, cursor_screen_x, GetY() + font_size_ + text_top_margin, cursor_color_);
+        ::DrawLine(cursor_screen_x, text_y_pos, cursor_screen_x, text_y_pos + font_size_, cursor_color_);
     }
 }
 

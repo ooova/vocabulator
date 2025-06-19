@@ -18,6 +18,7 @@ Config::Config()
     values_[ConfigId::kButtonWidth] = {"kButtonWidth", ConfigType::kInt, "", "100"};
     values_[ConfigId::kButtonHeight] = {"kButtonHeight", ConfigType::kInt, "", "30"};
     values_[ConfigId::kButtonFontSize] = {"kButtonFontSize", ConfigType::kInt, "", "18"};
+    values_[ConfigId::kInputFontSize] = {"kInputFontSize", ConfigType::kInt, "", "18"};
     values_[ConfigId::kElementMargin] = {"kElementMargin", ConfigType::kInt, "", "5"};
     values_[ConfigId::kCardWidth] = {"kCardWidth", ConfigType::kInt, "", "400"};
     values_[ConfigId::kCardHeight] = {"kCardHeight", ConfigType::kInt, "", "300"};

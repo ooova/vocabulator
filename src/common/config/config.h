@@ -18,6 +18,7 @@ enum class ConfigId {
     kButtonWidth,
     kButtonHeight,
     kButtonFontSize,
+    kInputFontSize,
     kElementMargin,
     kCardWidth,
     kCardHeight,

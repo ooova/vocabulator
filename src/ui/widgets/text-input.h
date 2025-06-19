@@ -33,18 +33,18 @@ public:
     [[nodiscard]]bool isInFocus() const { return in_focus_; }
 
 private:
+    RFont font_;
+    RColor text_color_;
+    RColor background_color_;
+    RColor cursor_color_;
     bool in_focus_{false};
     std::string text_{};
     size_t cursor_pos_ = 0;
     bool cursor_visible_ = true;
     float cursor_timer_ = 0.0f;
-    float font_size_ = 16.0f;
+    int font_size_ = 16.0f;
     float spacing_ = 1.0f;
     float text_offset_x_;
-    RFont font_;
-    RColor text_color_;
-    RColor background_color_;
-    RColor cursor_color_;
 
     size_t prev_char_pos(size_t pos) const;
     size_t next_char_pos(size_t pos) const;
