@@ -1,1 +1,1 @@
-src += files('font-manager.cc')
+src += files('font_manager.cc')

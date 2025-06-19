@@ -2,7 +2,7 @@
 #define UI_WIDGETS_CARD_H
 
 #include "ui/widgets/widget.h"
-#include "ui/widgets/text-box.h"
+#include "ui/widgets/text_box.h"
 #include "vocabulary/word.h"
 
 #include "raylib-cpp.hpp"

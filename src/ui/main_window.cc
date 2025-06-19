@@ -1,4 +1,4 @@
-#include "main-window.h"
+#include "main_window.h"
 
 #include <array>
 #include <functional>
@@ -15,7 +15,7 @@
 #include "ui/events/keyboard_event.h"
 #include "ui/events/mouse_events.h"
 #include "ui/events/text_input_event.h"
-#include "ui/tools/font-manager.h"
+#include "ui/tools/font_manager.h"
 #include "ui/tools/locale.h"
 #include "vocabulary/translation.h"
 #include "vocabulary/vocabulary.h"

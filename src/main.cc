@@ -2,7 +2,7 @@
 
 #include "common/config/config.h"
 #include "network/http/client/nttp_client.h"
-#include "ui/main-window.h"
+#include "ui/main_window.h"
 #include "vocabulary/vocabulary.h"
 
 using namespace std::literals;

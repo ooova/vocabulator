@@ -4,11 +4,11 @@
 #include "common/config/config.h"
 #include "common/events/event_dispatcher.h"
 #include "network/http/request.h"
-#include "ui/tools/font-manager.h"
+#include "ui/tools/font_manager.h"
 #include "ui/widgets/button.h"
 #include "ui/widgets/card.h"
-#include "ui/widgets/text-input.h"
-#include "ui/widgets/text-box.h"
+#include "ui/widgets/text_input.h"
+#include "ui/widgets/text_box.h"
 
 #include "raylib-cpp.hpp"
 

@@ -1,4 +1,4 @@
-#include "text-input.h"
+#include "text_input.h"
 
 #include "common/events/event_dispatcher.h"
 #include "tools/string_utils.h"

@@ -1,4 +1,4 @@
-src += files('main-window.cc')
+src += files('main_window.cc')
 
 subdir('widgets')
 subdir('tools')
